@@ -14,6 +14,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _auth = AuthRepository();
   final _tokenController = TextEditingController();
   final _driveIdController = TextEditingController();
+  final _folderIdController = TextEditingController();
   bool _isLoading = true;
 
   @override
@@ -28,6 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _tokenController.text = creds['token'] ?? '';
         _driveIdController.text = creds['driveId'] ?? '';
+        _folderIdController.text = creds['folderId'] ?? '';
         _isLoading = false;
       });
     }
@@ -37,6 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _auth.saveCredentials(
       token: _tokenController.text.trim(),
       driveId: _driveIdController.text.trim(),
+      folderId: _folderIdController.text.trim(),
     );
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -65,6 +68,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   TextField(
                     controller: _driveIdController,
                     decoration: const InputDecoration(labelText: 'Drive ID'),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _folderIdController,
+                    decoration: const InputDecoration(labelText: 'Root Folder ID'),
                     keyboardType: TextInputType.number,
                   ),
                   const SizedBox(height: 32),

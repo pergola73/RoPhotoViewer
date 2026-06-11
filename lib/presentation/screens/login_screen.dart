@@ -20,6 +20,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _tokenController = TextEditingController();
   final _driveIdController = TextEditingController();
+  final _folderIdController = TextEditingController();
   bool _isLoading = false;
 
   @override
@@ -32,13 +33,15 @@ class _LoginScreenState extends State<LoginScreen> {
     final creds = await widget.authRepository.getCredentials();
     if (creds['token'] != null) _tokenController.text = creds['token']!;
     if (creds['driveId'] != null) _driveIdController.text = creds['driveId']!;
+    if (creds['folderId'] != null) _folderIdController.text = creds['folderId']!;
   }
 
   Future<void> _login() async {
     final token = _tokenController.text.trim();
     final driveId = _driveIdController.text.trim();
+    final folderId = _folderIdController.text.trim();
 
-    if (token.isEmpty || driveId.isEmpty) {
+    if (token.isEmpty || driveId.isEmpty || folderId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
       );
@@ -48,7 +51,11 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       await widget.apiService.initialize(token, driveId);
-      await widget.authRepository.saveCredentials(token: token, driveId: driveId);
+      await widget.authRepository.saveCredentials(
+        token: token, 
+        driveId: driveId,
+        folderId: folderId,
+      );
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
@@ -101,6 +108,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Drive ID',
                   helperText: 'Found in the kDrive URL (e.g. 123456)',
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _folderIdController,
+                decoration: const InputDecoration(
+                  labelText: 'Root Folder ID',
+                  helperText: 'ID of the folder you want to sync (e.g. 3377)',
                 ),
                 keyboardType: TextInputType.number,
               ),

@@ -128,8 +128,12 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     final engine = syncEngine;
     if (engine == null) return;
     
+    final creds = await AuthRepository().getCredentials();
+    final folderId = creds['folderId'];
+    if (folderId == null) return;
+
     emit(state.copyWith(status: GalleryStatus.syncing, processedCount: 0));
-    await engine.sync('3377', onProgress: (count) {
+    await engine.sync(folderId, onProgress: (count) {
       if (!emit.isDone) {
         add(SyncProgressUpdated(count));
       }
