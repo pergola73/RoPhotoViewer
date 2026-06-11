@@ -41,9 +41,6 @@ class SyncEngine {
             List<Photo> photosToDownloadInBatch = [];
 
             for (final item in batch) {
-              if (item['exif'] != null) {
-                debugPrint('Sync: EXIF data gevonden voor ${item['name']}: ${item['exif']}');
-              }
               final name = item['name']?.toString() ?? '';
               final type = item['type']?.toString(); 
               final mimeType = item['mime_type']?.toString();
@@ -98,6 +95,7 @@ class SyncEngine {
 
               final dynamic exif = item['exif'];
               if (exif != null) {
+                debugPrint('Sync: EXIF voor $name: $exif');
                 locationName = exif['location']?['name']?.toString();
                 
                 // Sommige API versies hebben GPS direct in EXIF, anderen in een sub-object

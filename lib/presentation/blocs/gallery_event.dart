@@ -41,6 +41,16 @@ class ChangeViewMode extends GalleryEvent {
   List<Object?> get props => [mode];
 }
 
+class TogglePhotoSelection extends GalleryEvent {
+  final int photoId;
+  const TogglePhotoSelection(this.photoId);
+
+  @override
+  List<Object?> get props => [photoId];
+}
+
+class ClearSelection extends GalleryEvent {}
+
 class ToggleFavoriteFilter extends GalleryEvent {}
 
 class SyncWithKDrive extends GalleryEvent {}

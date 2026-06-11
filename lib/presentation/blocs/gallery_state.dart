@@ -10,6 +10,7 @@ class GalleryState extends Equatable {
   final Map<String, List<Photo>> groupedPhotos;
   final String searchQuery;
   final bool showOnlyFavorites;
+  final Set<int> selectedPhotoIds;
   final int processedCount;
 
   const GalleryState({
@@ -19,6 +20,7 @@ class GalleryState extends Equatable {
     this.groupedPhotos = const {},
     this.searchQuery = '',
     this.showOnlyFavorites = false,
+    this.selectedPhotoIds = const {},
     this.processedCount = 0,
   });
 
@@ -29,6 +31,7 @@ class GalleryState extends Equatable {
     Map<String, List<Photo>>? groupedPhotos,
     String? searchQuery,
     bool? showOnlyFavorites,
+    Set<int>? selectedPhotoIds,
     int? processedCount,
   }) {
     return GalleryState(
@@ -38,10 +41,11 @@ class GalleryState extends Equatable {
       groupedPhotos: groupedPhotos ?? this.groupedPhotos,
       searchQuery: searchQuery ?? this.searchQuery,
       showOnlyFavorites: showOnlyFavorites ?? this.showOnlyFavorites,
+      selectedPhotoIds: selectedPhotoIds ?? this.selectedPhotoIds,
       processedCount: processedCount ?? this.processedCount,
     );
   }
 
   @override
-  List<Object?> get props => [status, viewMode, photos, groupedPhotos, searchQuery, showOnlyFavorites, processedCount];
+  List<Object?> get props => [status, viewMode, photos, groupedPhotos, searchQuery, showOnlyFavorites, selectedPhotoIds, processedCount];
 }

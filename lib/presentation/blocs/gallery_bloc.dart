@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:ro_photo_viewer/core/database/app_database.dart';
+import 'package:ro_photo_viewer/core/network/auth_repository.dart';
 import 'package:ro_photo_viewer/core/network/sync_engine.dart';
 import 'package:intl/intl.dart';
 
@@ -23,6 +24,8 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     on<SyncProgressUpdated>(_onSyncProgressUpdated);
     on<ChangeViewMode>(_onChangeViewMode);
     on<ToggleFavoriteFilter>(_onToggleFavoriteFilter);
+    on<TogglePhotoSelection>(_onTogglePhotoSelection);
+    on<ClearSelection>(_onClearSelection);
 
     _photosSubscription = db.watchAllPhotos().listen((photos) {
       if (state.searchQuery.isEmpty) {
@@ -96,6 +99,20 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     emit(state.copyWith(showOnlyFavorites: newShowOnlyFavorites, photos: photos, groupedPhotos: grouped));
   }
 
+  void _onTogglePhotoSelection(TogglePhotoSelection event, Emitter<GalleryState> emit) {
+    final currentSelection = Set<int>.from(state.selectedPhotoIds);
+    if (currentSelection.contains(event.photoId)) {
+      currentSelection.remove(event.photoId);
+    } else {
+      currentSelection.add(event.photoId);
+    }
+    emit(state.copyWith(selectedPhotoIds: currentSelection));
+  }
+
+  void _onClearSelection(ClearSelection event, Emitter<GalleryState> emit) {
+    emit(state.copyWith(selectedPhotoIds: {}));
+  }
+
   void _onSyncProgressUpdated(SyncProgressUpdated event, Emitter<GalleryState> emit) {
     emit(state.copyWith(processedCount: event.count));
   }
@@ -128,16 +145,20 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     final engine = syncEngine;
     if (engine == null) return;
     
-    final creds = await AuthRepository().getCredentials();
-    final folderId = creds['folderId'];
-    if (folderId == null) return;
+    final folderIds = await AuthRepository().getFolderIds();
+    if (folderIds.isEmpty) return;
 
     emit(state.copyWith(status: GalleryStatus.syncing, processedCount: 0));
-    await engine.sync(folderId, onProgress: (count) {
-      if (!emit.isDone) {
-        add(SyncProgressUpdated(count));
-      }
-    });
+    
+    int total = 0;
+    for (var folderId in folderIds) {
+      await engine.sync(folderId, onProgress: (count) {
+        total += count;
+        if (!emit.isDone) {
+          add(SyncProgressUpdated(total));
+        }
+      });
+    }
     
     emit(state.copyWith(status: GalleryStatus.syncFinished));
     emit(state.copyWith(status: GalleryStatus.success));

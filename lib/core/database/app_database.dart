@@ -137,6 +137,8 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<Album>> getAllAlbums() => select(albums).get();
 
+  Stream<List<Album>> watchAllAlbums() => select(albums).watch();
+
   Future<List<Photo>> getPhotosInAlbum(int albumId) async {
     final query = select(photos).join([
       innerJoin(albumPhotos, albumPhotos.photoId.equalsExp(photos.id)),

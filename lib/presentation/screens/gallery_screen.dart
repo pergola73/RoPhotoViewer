@@ -2,26 +2,53 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ro_photo_viewer/core/database/app_database.dart';
-import 'package:ro_photo_viewer/core/network/auth_repository.dart';
-import 'package:ro_photo_viewer/core/network/kdrive_api_service.dart';
+
 import 'package:ro_photo_viewer/presentation/blocs/gallery_bloc.dart';
-import 'package:ro_photo_viewer/presentation/screens/login_screen.dart';
+
 import 'package:ro_photo_viewer/presentation/screens/photo_viewer_screen.dart';
 import 'package:ro_photo_viewer/presentation/screens/settings_screen.dart';
+import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:share_plus/share_plus.dart';
 
-class GalleryScreen extends StatelessWidget {
+class GalleryScreen extends StatefulWidget {
   const GalleryScreen({super.key});
+
+  @override
+  State<GalleryScreen> createState() => _GalleryScreenState();
+}
+
+class _GalleryScreenState extends State<GalleryScreen> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+  double _baseScale = 1.0;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        bottomNavigationBar: const TabBar(
-          tabs: [
-            Tab(icon: Icon(Icons.photo_library), text: 'Foto\'s'),
-            Tab(icon: Icon(Icons.collections), text: 'Albums'),
-          ],
+        bottomNavigationBar: Material(
+          elevation: 8,
+          color: Theme.of(context).cardColor,
+          child: SafeArea(
+            child: TabBar(
+              labelColor: Theme.of(context).primaryColor,
+              unselectedLabelColor: Colors.grey,
+              indicatorSize: TabBarIndicatorSize.label,
+              tabs: const [
+                Tab(icon: Icon(Icons.photo_library), text: 'Foto\'s'),
+                Tab(icon: Icon(Icons.collections), text: 'Albums'),
+              ],
+            ),
+          ),
         ),
         body: TabBarView(
           children: [
@@ -30,193 +57,347 @@ class GalleryScreen extends StatelessWidget {
           ],
         ),
         floatingActionButton: BlocBuilder<GalleryBloc, GalleryState>(
-          builder: (context, state) => FloatingActionButton(
-            onPressed: () => context.read<GalleryBloc>().add(SyncWithKDrive()),
-            child: state.status == GalleryStatus.syncing 
-              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Icon(Icons.sync),
-          ),
+          builder: (context, state) {
+            if (state.selectedPhotoIds.isNotEmpty) return const SizedBox.shrink();
+            return FloatingActionButton(
+              onPressed: () => context.read<GalleryBloc>().add(SyncWithKDrive()),
+              child: state.status == GalleryStatus.syncing 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.sync),
+            );
+          },
         ),
       ),
     );
   }
 
   Widget _buildPhotosTab(BuildContext context) {
-    return BlocListener<GalleryBloc, GalleryState>(
-      listenWhen: (previous, current) => previous.status != current.status,
-      listener: (context, state) {
-        if (state.status == GalleryStatus.syncing) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Sync gestart...'), duration: Duration(seconds: 2)),
-          );
-        } else if (state.status == GalleryStatus.syncFinished) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Sync voltooid!'), backgroundColor: Colors.green),
-          );
-        }
-      },
-      child: BlocBuilder<GalleryBloc, GalleryState>(
-        builder: (context, state) {
-          final months = state.groupedPhotos.keys.toList();
-          int crossAxisCount = 4;
-          if (state.viewMode == GalleryViewMode.large) crossAxisCount = 1;
-          if (state.viewMode == GalleryViewMode.day) crossAxisCount = 2;
-          if (state.viewMode == GalleryViewMode.month) crossAxisCount = 4;
+    return BlocBuilder<GalleryBloc, GalleryState>(
+      builder: (context, state) {
+        final sortedSections = state.groupedPhotos.keys.toList();
+        final isSelectionMode = state.selectedPhotoIds.isNotEmpty;
 
-          return GestureDetector(
-            onScaleEnd: (details) {
-              if (details.scaleVelocity > 0.5) {
-                if (state.viewMode == GalleryViewMode.month) {
-                  context.read<GalleryBloc>().add(const ChangeViewMode(GalleryViewMode.day));
-                } else if (state.viewMode == GalleryViewMode.day) {
-                  context.read<GalleryBloc>().add(const ChangeViewMode(GalleryViewMode.large));
-                }
-              } else if (details.scaleVelocity < -0.5) {
-                if (state.viewMode == GalleryViewMode.large) {
-                  context.read<GalleryBloc>().add(const ChangeViewMode(GalleryViewMode.day));
-                } else if (state.viewMode == GalleryViewMode.day) {
-                  context.read<GalleryBloc>().add(const ChangeViewMode(GalleryViewMode.month));
+        int crossAxisCount = 4;
+        if (state.viewMode == GalleryViewMode.large) crossAxisCount = 1;
+        if (state.viewMode == GalleryViewMode.day) crossAxisCount = 2;
+        if (state.viewMode == GalleryViewMode.month) crossAxisCount = 4;
+
+        return Scaffold(
+          appBar: isSelectionMode 
+            ? _buildSelectionAppBar(context, state)
+            : _buildNormalAppBar(context, state),
+          body: GestureDetector(
+            onScaleStart: (_) => _baseScale = 1.0,
+            onScaleUpdate: (details) {
+              final scale = details.scale;
+              if ((scale - _baseScale).abs() > 0.3) {
+                if (scale > 1.3) {
+                  // Zoom in -> Minder kolommen (Grotere foto's)
+                  if (state.viewMode == GalleryViewMode.month) {
+                    context.read<GalleryBloc>().add(const ChangeViewMode(GalleryViewMode.day));
+                    _baseScale = scale;
+                  } else if (state.viewMode == GalleryViewMode.day) {
+                    context.read<GalleryBloc>().add(const ChangeViewMode(GalleryViewMode.large));
+                    _baseScale = scale;
+                  }
+                } else if (scale < 0.7) {
+                  // Zoom uit -> Meer kolommen (Kleinere foto's)
+                  if (state.viewMode == GalleryViewMode.large) {
+                    context.read<GalleryBloc>().add(const ChangeViewMode(GalleryViewMode.day));
+                    _baseScale = scale;
+                  } else if (state.viewMode == GalleryViewMode.day) {
+                    context.read<GalleryBloc>().add(const ChangeViewMode(GalleryViewMode.month));
+                    _baseScale = scale;
+                  }
                 }
               }
             },
-            child: CustomScrollView(
-              cacheExtent: 2000.0,
-              slivers: [
-                SliverAppBar(
-                  floating: true,
-                  pinned: true,
-                  title: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('K-Photo ${state.photos.isNotEmpty ? "(${state.photos.length})" : ""}', 
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                      if (state.status == GalleryStatus.syncing)
-                        Text('Syncing: ${state.processedCount}...', 
-                          style: const TextStyle(fontSize: 12, color: Colors.blue)),
-                    ],
-                  ),
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.settings),
-                      onPressed: () {
-                        Navigator.of(context).push(MaterialPageRoute(builder: (context) => const SettingsScreen()));
-                      },
-                    ),
-                    PopupMenuButton<GalleryViewMode>(
-                      icon: const Icon(Icons.grid_view),
-                      onSelected: (mode) => context.read<GalleryBloc>().add(ChangeViewMode(mode)),
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(value: GalleryViewMode.large, child: Text('Heel ruim')),
-                        const PopupMenuItem(value: GalleryViewMode.day, child: Text('Dag')),
-                        const PopupMenuItem(value: GalleryViewMode.month, child: Text('Maand')),
-                      ],
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        state.showOnlyFavorites ? Icons.star : Icons.star_border,
-                        color: state.showOnlyFavorites ? Colors.yellow : null,
-                      ),
-                      onPressed: () => context.read<GalleryBloc>().add(ToggleFavoriteFilter()),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.logout),
-                      onPressed: () async {
-                        final auth = AuthRepository();
-                        await auth.logout();
-                        if (context.mounted) {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (context) => LoginScreen(authRepository: auth, apiService: KDriveApiService()))
-                          );
-                        }
-                      },
-                    ),
-                  ],
-                ),
-                if (state.status == GalleryStatus.loading && state.photos.isEmpty)
-                  const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
-                
-                if (state.photos.isEmpty && state.status != GalleryStatus.loading && state.status != GalleryStatus.syncing)
-                  const SliverFillRemaining(child: Center(child: Text('Geen foto\'s gevonden.'))),
+            child: Scrollbar(
+              controller: _scrollController,
+              interactive: true,
+              thickness: 8,
+              radius: const Radius.circular(4),
+              child: CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  if (state.status == GalleryStatus.loading && state.photos.isEmpty)
+                    const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
+                  
+                  if (state.photos.isEmpty && state.status != GalleryStatus.loading && state.status != GalleryStatus.syncing)
+                    const SliverFillRemaining(child: Center(child: Text('Geen foto\'s gevonden.'))),
 
-                for (var month in months) ...[
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-                      child: Text(
-                        month,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blueGrey[800],
+                  for (var section in sortedSections)
+                    SliverStickyHeader(
+                      header: Container(
+                        height: 50.0,
+                        color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.95),
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          section,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                       ),
-                    ),
-                  ),
-                  SliverGrid(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 1,
-                      mainAxisSpacing: 1,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final photo = state.groupedPhotos[month]![index];
-                        return GestureDetector(
-                          key: ValueKey(photo.id),
-                          onTap: () {
-                            final fullIndex = state.photos.indexOf(photo);
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => PhotoViewerScreen(
-                                  photos: state.photos,
-                                  initialIndex: fullIndex >= 0 ? fullIndex : 0,
+                      sliver: SliverGrid(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: 1,
+                          mainAxisSpacing: 1,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final photo = state.groupedPhotos[section]![index];
+                            final isSelected = state.selectedPhotoIds.contains(photo.id);
+                            
+                            return GestureDetector(
+                              key: ValueKey(photo.id),
+                              onTap: () {
+                                if (isSelectionMode) {
+                                  context.read<GalleryBloc>().add(TogglePhotoSelection(photo.id));
+                                } else {
+                                  final fullIndex = state.photos.indexOf(photo);
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => PhotoViewerScreen(
+                                        photos: state.photos,
+                                        initialIndex: fullIndex >= 0 ? fullIndex : 0,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                              onLongPress: () {
+                                context.read<GalleryBloc>().add(TogglePhotoSelection(photo.id));
+                              },
+                              child: Hero(
+                                tag: photo.id,
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Container(
+                                      color: Colors.grey[300],
+                                      child: (photo.localThumbnailPath != null && File(photo.localThumbnailPath!).existsSync())
+                                          ? Image.file(
+                                              File(photo.localThumbnailPath!),
+                                              fit: BoxFit.cover,
+                                              cacheWidth: crossAxisCount == 1 ? 800 : 200,
+                                            )
+                                          : const Center(child: Icon(Icons.photo, color: Colors.white, size: 20)),
+                                    ),
+                                    if (isSelected)
+                                      Container(
+                                        color: Colors.white.withOpacity(0.3),
+                                        child: const Center(
+                                          child: Icon(Icons.check_circle, color: Colors.blue, size: 30),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                             );
                           },
-                          child: Hero(
-                            tag: photo.id,
-                            child: Container(
-                              color: Colors.grey[300],
-                              child: (photo.localThumbnailPath != null && File(photo.localThumbnailPath!).existsSync())
-                                  ? Image.file(
-                                      File(photo.localThumbnailPath!),
-                                      fit: BoxFit.cover,
-                                      cacheWidth: crossAxisCount == 1 ? 800 : 200,
-                                    )
-                                  : Stack(
-                                      alignment: Alignment.center,
-                                      children: [
-                                        const Icon(Icons.photo, color: Colors.white, size: 20),
-                                        Positioned(
-                                          bottom: 2,
-                                          child: Text(
-                                            photo.fileName.length > 10 ? '...${photo.fileName.substring(photo.fileName.length - 8)}' : photo.fileName,
-                                            style: const TextStyle(fontSize: 8, color: Colors.black54),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                            ),
-                          ),
-                        );
-                      },
-                      childCount: state.groupedPhotos[month]!.length,
+                          childCount: state.groupedPhotos[section]!.length,
+                        ),
+                      ),
                     ),
-                  ),
                 ],
-              ],
+              ),
             ),
-          );
-        },
+          ),
+        );
+      },
+    );
+  }
+
+  AppBar _buildNormalAppBar(BuildContext context, GalleryState state) {
+    return AppBar(
+      title: _isSearching 
+        ? TextField(
+            controller: _searchController,
+            autofocus: true,
+            decoration: const InputDecoration(hintText: 'Zoek op tag, locatie of naam...', border: InputBorder.none),
+            onChanged: (query) => context.read<GalleryBloc>().add(SearchGallery(query)),
+          )
+        : const Text('K-Photo'),
+      actions: [
+        IconButton(
+          icon: Icon(_isSearching ? Icons.close : Icons.search),
+          onPressed: () {
+            setState(() {
+              if (_isSearching) {
+                _isSearching = false;
+                _searchController.clear();
+                context.read<GalleryBloc>().add(const SearchGallery(''));
+              } else {
+                _isSearching = true;
+              }
+            });
+          },
+        ),
+        PopupMenuButton<GalleryViewMode>(
+          icon: const Icon(Icons.grid_view),
+          onSelected: (mode) => context.read<GalleryBloc>().add(ChangeViewMode(mode)),
+          itemBuilder: (context) => [
+            const PopupMenuItem(value: GalleryViewMode.large, child: Text('Heel ruim')),
+            const PopupMenuItem(value: GalleryViewMode.day, child: Text('Dag')),
+            const PopupMenuItem(value: GalleryViewMode.month, child: Text('Maand')),
+          ],
+        ),
+        IconButton(
+          icon: Icon(
+            state.showOnlyFavorites ? Icons.star : Icons.star_border,
+            color: state.showOnlyFavorites ? Colors.yellow : null,
+          ),
+          onPressed: () => context.read<GalleryBloc>().add(ToggleFavoriteFilter()),
+        ),
+        IconButton(
+          icon: const Icon(Icons.settings),
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(builder: (context) => const SettingsScreen()));
+          },
+        ),
+      ],
+    );
+  }
+
+  AppBar _buildSelectionAppBar(BuildContext context, GalleryState state) {
+    return AppBar(
+      leading: IconButton(
+        icon: const Icon(Icons.close),
+        onPressed: () => context.read<GalleryBloc>().add(ClearSelection()),
+      ),
+      title: Text('${state.selectedPhotoIds.length} geselecteerd'),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.share),
+          onPressed: () => _shareSelected(state),
+        ),
+        IconButton(
+          icon: const Icon(Icons.add_to_photos),
+          onPressed: () => _addSelectedToAlbum(state),
+        ),
+        IconButton(
+          icon: const Icon(Icons.delete),
+          onPressed: () => _deleteSelected(state),
+        ),
+      ],
+    );
+  }
+
+  void _shareSelected(GalleryState state) async {
+    final selectedPhotos = state.photos.where((p) => state.selectedPhotoIds.contains(p.id)).toList();
+    final paths = selectedPhotos
+        .map((p) => p.localHighResPath ?? p.localThumbnailPath)
+        .whereType<String>()
+        .where((path) => File(path).existsSync())
+        .toList();
+
+    if (paths.isNotEmpty) {
+      await Share.shareXFiles(paths.map((p) => XFile(p)).toList());
+    }
+  }
+
+  void _addSelectedToAlbum(GalleryState state) async {
+    final db = context.read<GalleryBloc>().db;
+    final albums = await db.getAllAlbums();
+    
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.add),
+              title: const Text('Nieuw Album'),
+              onTap: () {
+                Navigator.pop(context);
+                _createNewAlbumWithSelected(state);
+              },
+            ),
+            const Divider(),
+            ...albums.map((album) => ListTile(
+              leading: const Icon(Icons.photo_album),
+              title: Text(album.name),
+              onTap: () async {
+                for (var photoId in state.selectedPhotoIds) {
+                  await db.addPhotoToAlbum(album.id, photoId);
+                }
+                if (mounted) {
+                  Navigator.pop(context);
+                  context.read<GalleryBloc>().add(ClearSelection());
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Toegevoegd aan ${album.name}')));
+                }
+              },
+            )),
+          ],
+        ),
       ),
     );
   }
 
+  Future<void> _createNewAlbumWithSelected(GalleryState state) async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Nieuw Album'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Album naam'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuleren')),
+          TextButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Maken')),
+        ],
+      ),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      final db = context.read<GalleryBloc>().db;
+      final albumId = await db.createAlbum(result, coverPhotoId: state.selectedPhotoIds.first);
+      for (var photoId in state.selectedPhotoIds) {
+        await db.addPhotoToAlbum(albumId, photoId);
+      }
+      if (mounted) {
+        context.read<GalleryBloc>().add(ClearSelection());
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Album "$result" gemaakt')));
+      }
+    }
+  }
+
+  void _deleteSelected(GalleryState state) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Verwijderen?'),
+        content: Text('Weet je zeker dat je deze ${state.selectedPhotoIds.length} foto\'s wilt verwijderen?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuleren')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Verwijderen', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final db = context.read<GalleryBloc>().db;
+      for (var photoId in state.selectedPhotoIds) {
+        final photo = state.photos.firstWhere((p) => p.id == photoId);
+        await (db.delete(db.photos)..where((t) => t.id.equals(photoId))).go();
+        if (photo.localHighResPath != null) File(photo.localHighResPath!).delete().catchError((_) {});
+        if (photo.localThumbnailPath != null) File(photo.localThumbnailPath!).delete().catchError((_) {});
+      }
+      context.read<GalleryBloc>().add(ClearSelection());
+    }
+  }
+
   Widget _buildAlbumsTab(BuildContext context) {
     final db = context.read<GalleryBloc>().db;
-    return FutureBuilder<List<Album>>(
-      future: db.getAllAlbums(),
+    return StreamBuilder<List<Album>>(
+      stream: db.watchAllAlbums(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
         final albums = snapshot.data!;
@@ -233,27 +414,42 @@ class GalleryScreen extends StatelessWidget {
           itemCount: albums.length,
           itemBuilder: (context, index) {
             final album = albums[index];
-            return GestureDetector(
-              onTap: () => _openAlbum(context, album),
-              onLongPress: () => _showAlbumOptions(context, album),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(8),
+            return FutureBuilder<List<Photo>>(
+              future: db.getPhotosInAlbum(album.id),
+              builder: (context, photoSnapshot) {
+                final photos = photoSnapshot.data ?? [];
+                String? coverPath;
+                if (photos.isNotEmpty) {
+                  coverPath = photos.first.localThumbnailPath;
+                }
+
+                return GestureDetector(
+                  onTap: () => _openAlbum(context, album),
+                  onLongPress: () => _showAlbumOptions(context, album),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                            image: coverPath != null && File(coverPath).existsSync()
+                              ? DecorationImage(image: FileImage(File(coverPath)), fit: BoxFit.cover)
+                              : null,
+                          ),
+                          child: coverPath == null ? const Center(child: Icon(Icons.photo_album, size: 40, color: Colors.grey)) : null,
+                        ),
                       ),
-                      child: const Center(child: Icon(Icons.photo_album, size: 40, color: Colors.grey)),
-                    ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Text(album.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                      Text('${photos.length} foto\'s', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    ],
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Text(album.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
+                );
+              }
             );
           },
         );
@@ -325,17 +521,63 @@ class GalleryScreen extends StatelessWidget {
 
     Navigator.of(context).push(MaterialPageRoute(
       builder: (context) => Scaffold(
-        appBar: AppBar(title: Text(album.name)),
+        appBar: AppBar(
+          title: Text(album.name),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () => _addPhotosToExistingAlbum(context, album),
+            ),
+          ],
+        ),
         body: GridView.builder(
           padding: const EdgeInsets.all(1),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 1, mainAxisSpacing: 1),
           itemCount: photos.length,
           itemBuilder: (context, index) {
             final photo = photos[index];
-            return Image.file(File(photo.localThumbnailPath!), fit: BoxFit.cover);
+            return GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => PhotoViewerScreen(photos: photos, initialIndex: index),
+                ));
+              },
+              onLongPress: () => _showAlbumPhotoOptions(context, album, photo),
+              child: Image.file(File(photo.localThumbnailPath!), fit: BoxFit.cover),
+            );
           },
         ),
       ),
     ));
+  }
+
+  void _showAlbumPhotoOptions(BuildContext context, Album album, Photo photo) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.remove_circle_outline, color: Colors.red),
+              title: const Text('Uit album verwijderen'),
+              onTap: () async {
+                await AppDatabase().removePhotoFromAlbum(album.id, photo.id);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  Navigator.pop(context); // Close album detail and reopen to refresh (simple way)
+                  _openAlbum(context, album);
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _addPhotosToExistingAlbum(BuildContext context, Album album) async {
+    // This could open a photo picker based on all photos
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecteer foto\'s in de gallerij en kies "Voeg toe aan album"')));
   }
 }
