@@ -113,6 +113,25 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Future<void> deletePhoto(Photo photo) async {
+    // Verwijder lokale bestanden
+    if (photo.localThumbnailPath != null) {
+      final file = File(photo.localThumbnailPath!);
+      if (await file.exists()) await file.delete();
+    }
+    if (photo.localHighResPath != null) {
+      final file = File(photo.localHighResPath!);
+      if (await file.exists()) await file.delete();
+    }
+
+    // Verwijder uit album relaties
+    await (delete(albumPhotos)..where((t) => t.photoId.equals(photo.id))).go();
+    
+    // Verwijder uit database
+    await (delete(photos)..where((t) => t.id.equals(photo.id))).go();
+    debugPrint('Database: Foto ${photo.id} verwijderd.');
+  }
+
   Future<List<Photo>> getFavorites() {
     return (select(photos)
       ..where((t) => t.isFavorite.equals(true))

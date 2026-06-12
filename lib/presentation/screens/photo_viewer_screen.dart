@@ -98,23 +98,48 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                 final highResFile = photo.localHighResPath != null ? File(photo.localHighResPath!) : null;
                 final thumbFile = photo.localThumbnailPath != null ? File(photo.localThumbnailPath!) : null;
 
-                ImageProvider provider;
-                if (highResFile != null && highResFile.existsSync()) {
-                  provider = FileImage(highResFile);
-                } else if (thumbFile != null && thumbFile.existsSync()) {
-                  provider = FileImage(thumbFile);
-                } else {
-                  provider = const AssetImage('assets/placeholder.png');
-                }
-
-                return PhotoViewGalleryPageOptions(
-                  imageProvider: provider,
+                return PhotoViewGalleryPageOptions.customChild(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // 1. Altijd de thumbnail als basis tonen (snelle feedback)
+                      if (thumbFile != null && thumbFile.existsSync())
+                        Image.file(
+                          thumbFile,
+                          fit: BoxFit.contain,
+                          width: double.infinity,
+                          height: double.infinity,
+                          gaplessPlayback: true,
+                        ),
+                      
+                      // 2. De high-res foto eroverheen laden
+                      if (highResFile != null && highResFile.existsSync())
+                        Image.file(
+                          highResFile,
+                          fit: BoxFit.contain,
+                          width: double.infinity,
+                          height: double.infinity,
+                          gaplessPlayback: true,
+                        ),
+                        
+                      // 3. Optioneel een kleine indicator als we nog aan het downloaden zijn
+                      if (_isDownloading[photo.id] == true)
+                        const Center(
+                          child: SizedBox(
+                            width: 30,
+                            height: 30,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white24),
+                          ),
+                        ),
+                    ],
+                  ),
                   initialScale: PhotoViewComputedScale.contained,
                   minScale: PhotoViewComputedScale.contained,
                   maxScale: PhotoViewComputedScale.covered * 2,
                   heroAttributes: PhotoViewHeroAttributes(tag: photo.id),
                 );
               },
+              backgroundDecoration: const BoxDecoration(color: Colors.black),
               itemCount: widget.photos.length,
               pageController: _pageController,
               onPageChanged: (index) {

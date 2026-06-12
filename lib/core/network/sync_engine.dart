@@ -15,6 +15,8 @@ class SyncEngine {
 
   SyncEngine(this._apiService, this._db);
 
+  KDriveApiService get apiService => _apiService;
+
   Future<void> sync(String rootFolderId, {Function(int)? onProgress}) async {
     if (_isSyncing) return;
     _isSyncing = true;
@@ -144,6 +146,9 @@ class SyncEngine {
       final aiService = AITaggingService(_db);
       aiService.processPendingPhotos();
 
+      // Start achtergrond download van high-res foto's (nieuwste eerst)
+      preDownloadHighRes();
+
     } catch (e, stack) {
       debugPrint('Sync: Fout — $e\n$stack');
     } finally {
@@ -220,5 +225,37 @@ class SyncEngine {
       debugPrint('Sync: Extensie $ext niet herkend als afbeelding voor $name');
     }
     return isImg;
+  }
+
+  Future<void> preDownloadHighRes() async {
+    debugPrint('Sync: Starten achtergrond download van high-res foto\'s...');
+    final photos = await _db.getAllPhotos();
+    final localDir = await getApplicationDocumentsDirectory();
+    final photosDir = Directory(p.join(localDir.path, 'photos'));
+    if (!photosDir.existsSync()) photosDir.createSync();
+
+    // Alleen foto's downloaden die we nog niet hebben
+    final toDownload = photos.where((p) => p.localHighResPath == null || !File(p.localHighResPath!).existsSync()).toList();
+    
+    debugPrint('Sync: ${toDownload.length} high-res foto\'s te downloaden op achtergrond.');
+
+    for (var photo in toDownload) {
+      final localPath = p.join(photosDir.path, photo.fileName);
+      try {
+        await _apiService.downloadFile(photo.kdrivePath, localPath);
+        if (File(localPath).existsSync()) {
+          await (_db.update(_db.photos)..where((t) => t.id.equals(photo.id)))
+              .write(PhotosCompanion(localHighResPath: Value(localPath)));
+          debugPrint('Sync: High-res gedownload voor ${photo.fileName}');
+        }
+        // Wacht even om server niet te overbelasten
+        await Future.delayed(const Duration(seconds: 2));
+      } catch (e) {
+        debugPrint('Sync: High-res download mislukt voor ${photo.fileName}: $e');
+        // Wacht langer bij fout
+        await Future.delayed(const Duration(seconds: 10));
+      }
+    }
+    debugPrint('Sync: Achtergrond high-res downloads voltooid.');
   }
 }

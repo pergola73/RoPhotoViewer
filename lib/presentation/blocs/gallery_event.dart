@@ -51,6 +51,14 @@ class TogglePhotoSelection extends GalleryEvent {
 
 class ClearSelection extends GalleryEvent {}
 
+class DeleteSelectedPhotos extends GalleryEvent {
+  final bool remoteToo;
+  const DeleteSelectedPhotos({required this.remoteToo});
+
+  @override
+  List<Object?> get props => [remoteToo];
+}
+
 class ToggleFavoriteFilter extends GalleryEvent {}
 
 class SyncWithKDrive extends GalleryEvent {}

@@ -10,6 +10,8 @@ import 'package:ro_photo_viewer/presentation/screens/settings_screen.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+
 class GalleryScreen extends StatefulWidget {
   const GalleryScreen({super.key});
 
@@ -139,10 +141,17 @@ class _GalleryScreenState extends State<GalleryScreen> {
                         ),
                       ),
                       sliver: SliverGrid(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate: SliverQuiltedGridDelegate(
                           crossAxisCount: crossAxisCount,
-                          crossAxisSpacing: 1,
                           mainAxisSpacing: 1,
+                          crossAxisSpacing: 1,
+                          repeatPattern: QuiltedGridRepeatPattern.same,
+                          pattern: [
+                            const QuiltedGridTile(2, 2),
+                            const QuiltedGridTile(1, 1),
+                            const QuiltedGridTile(1, 1),
+                            const QuiltedGridTile(1, 2),
+                          ],
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
@@ -370,27 +379,32 @@ class _GalleryScreenState extends State<GalleryScreen> {
   }
 
   void _deleteSelected(GalleryState state) async {
-    final confirm = await showDialog<bool>(
+    final result = await showDialog<int>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Verwijderen?'),
-        content: Text('Weet je zeker dat je deze ${state.selectedPhotoIds.length} foto\'s wilt verwijderen?'),
+        title: const Text('Foto\'s verwijderen'),
+        content: Text('Wat wil je doen met deze ${state.selectedPhotoIds.length} foto\'s?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuleren')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Verwijderen', style: TextStyle(color: Colors.red))),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 0),
+            child: const Text('Annuleren'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 1),
+            child: const Text('Alleen lokaal', style: TextStyle(color: Colors.orange)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 2),
+            child: const Text('Overal (Lokaal & kDrive)', style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
 
-    if (confirm == true) {
-      final db = context.read<GalleryBloc>().db;
-      for (var photoId in state.selectedPhotoIds) {
-        final photo = state.photos.firstWhere((p) => p.id == photoId);
-        await (db.delete(db.photos)..where((t) => t.id.equals(photoId))).go();
-        if (photo.localHighResPath != null) File(photo.localHighResPath!).delete().catchError((_) {});
-        if (photo.localThumbnailPath != null) File(photo.localThumbnailPath!).delete().catchError((_) {});
-      }
-      context.read<GalleryBloc>().add(ClearSelection());
+    if (result == 1) {
+      context.read<GalleryBloc>().add(const DeleteSelectedPhotos(remoteToo: false));
+    } else if (result == 2) {
+      context.read<GalleryBloc>().add(const DeleteSelectedPhotos(remoteToo: true));
     }
   }
 

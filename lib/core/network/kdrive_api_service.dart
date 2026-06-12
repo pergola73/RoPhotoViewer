@@ -176,4 +176,14 @@ class KDriveApiService {
       }
     }
   }
+
+  Future<void> deleteFile(String fileId) async {
+    try {
+      await _dio.delete('/2/drive/$_driveId/files/$fileId');
+      debugPrint('kDrive API: Bestand $fileId verwijderd.');
+    } catch (e) {
+      debugPrint('kDrive API: Fout bij verwijderen bestand $fileId: $e');
+      rethrow;
+    }
+  }
 }

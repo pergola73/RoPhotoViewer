@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:ro_photo_viewer/core/database/app_database.dart';
@@ -26,6 +27,7 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     on<ToggleFavoriteFilter>(_onToggleFavoriteFilter);
     on<TogglePhotoSelection>(_onTogglePhotoSelection);
     on<ClearSelection>(_onClearSelection);
+    on<DeleteSelectedPhotos>(_onDeleteSelectedPhotos);
 
     _photosSubscription = db.watchAllPhotos().listen((photos) {
       if (state.searchQuery.isEmpty) {
@@ -55,7 +57,8 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     for (var photo in photos) {
       String key;
       if (mode == GalleryViewMode.month) {
-        key = DateFormat('MMMM yyyy', 'nl_NL').format(photo.dateTaken);
+        String formatted = DateFormat('MMMM yyyy', 'nl_NL').format(photo.dateTaken);
+        key = formatted[0].toUpperCase() + formatted.substring(1);
       } else if (mode == GalleryViewMode.day) {
         key = DateFormat('EEEE d MMMM yyyy', 'nl_NL').format(photo.dateTaken);
       } else {
@@ -162,5 +165,30 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     
     emit(state.copyWith(status: GalleryStatus.syncFinished));
     emit(state.copyWith(status: GalleryStatus.success));
+  }
+
+  Future<void> _onDeleteSelectedPhotos(DeleteSelectedPhotos event, Emitter<GalleryState> emit) async {
+    if (state.selectedPhotoIds.isEmpty) return;
+
+    final photosToDelete = state.photos.where((p) => state.selectedPhotoIds.contains(p.id)).toList();
+    
+    emit(state.copyWith(status: GalleryStatus.loading));
+    
+    try {
+      for (var photo in photosToDelete) {
+        // 1. Optioneel verwijderen van kDrive
+        if (event.remoteToo && syncEngine != null) {
+          await syncEngine!.apiService.deleteFile(photo.kdrivePath);
+        }
+        
+        // 2. Altijd verwijderen uit lokale database en bestandssysteem
+        await db.deletePhoto(photo);
+      }
+      
+      emit(state.copyWith(status: GalleryStatus.success, selectedPhotoIds: {}));
+    } catch (e) {
+      debugPrint('GalleryBloc: Fout bij verwijderen: $e');
+      emit(state.copyWith(status: GalleryStatus.failure));
+    }
   }
 }
