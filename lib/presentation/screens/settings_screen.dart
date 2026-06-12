@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ro_photo_viewer/core/network/auth_repository.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:ro_photo_viewer/presentation/screens/folder_browser_screen.dart';
 
@@ -107,6 +108,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  void _shareApp() {
+    Share.share(
+      'Check out K-Photo! Een privacy-vriendelijke foto galerij voor kDrive. Download het hier: [LINK_NAAR_JE_APP]',
+      subject: 'K-Photo App',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -186,6 +194,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       padding: EdgeInsets.all(8.0),
                       child: Text('Geen mappen geselecteerd.', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
                     ),
+                  const SizedBox(height: 32),
+                  const Text('App Delen', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    leading: const Icon(Icons.share),
+                    title: const Text('Deel K-Photo met vrienden'),
+                    subtitle: const Text('Stuur een downloadlink naar anderen'),
+                    onTap: _shareApp,
+                    tileColor: Colors.blue.withOpacity(0.05),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                   const SizedBox(height: 32),
                   ElevatedButton(
                     onPressed: _save,

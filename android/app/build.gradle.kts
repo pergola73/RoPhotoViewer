@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.rvodevelopment.ro_photo_viewer"
+    namespace = "com.rvodevelopment.kphoto"
     compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.rvodevelopment.ro_photo_viewer"
+        applicationId = "com.rvodevelopment.kphoto"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

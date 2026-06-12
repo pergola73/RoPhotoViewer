@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>K-Photo heeft toegang nodig tot je bibliotheek om foto's lokaal op te slaan of te uploaden.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>K-Photo heeft toegang nodig tot de camera om direct foto's te kunnen maken en uploaden naar kDrive.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>K-Photo heeft toegang nodig tot de microfoon voor het opnemen van video's.</string>
 </dict>
 </plist>
