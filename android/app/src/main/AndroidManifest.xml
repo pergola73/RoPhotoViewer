@@ -3,9 +3,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
-        android:label="ro_photo_viewer"
-        android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
+        android:label="K-Photo"
+        android:name="android.app.Application"
+        android:icon="@mipmap/launcher_icon"
         android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"

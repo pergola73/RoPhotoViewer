@@ -186,10 +186,26 @@ class _GalleryScreenState extends State<GalleryScreen> {
                                     Container(
                                       color: Colors.grey[300],
                                       child: (photo.localThumbnailPath != null && File(photo.localThumbnailPath!).existsSync())
-                                          ? Image.file(
-                                              File(photo.localThumbnailPath!),
-                                              fit: BoxFit.cover,
-                                              cacheWidth: crossAxisCount == 1 ? 800 : 200,
+                                          ? Stack(
+                                              fit: StackFit.expand,
+                                              children: [
+                                                // 1. Basis thumbnail (snel geladen)
+                                                Image.file(
+                                                  File(photo.localThumbnailPath!),
+                                                  fit: BoxFit.cover,
+                                                  cacheWidth: crossAxisCount == 1 ? 800 : 400,
+                                                  filterQuality: FilterQuality.low,
+                                                ),
+                                                // 2. High-res preview (indien aanwezig) voor de grote tegels
+                                                if ((crossAxisCount <= 2) && photo.localHighResPath != null && File(photo.localHighResPath!).existsSync())
+                                                  Image.file(
+                                                    File(photo.localHighResPath!),
+                                                    fit: BoxFit.cover,
+                                                    // Optimaliseer cacheWidth voor schermbreedte om geheugen te sparen
+                                                    cacheWidth: crossAxisCount == 1 ? 1080 : 600,
+                                                    filterQuality: FilterQuality.medium,
+                                                  ),
+                                              ],
                                             )
                                           : const Center(child: Icon(Icons.photo, color: Colors.white, size: 20)),
                                     ),
