@@ -1,5 +1,5 @@
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
-import 'package:ro_photo_viewer/core/database/app_database.dart';
+import 'package:k_photo/core/database/app_database.dart';
 
 class AITaggingService {
   final AppDatabase _db;
@@ -21,14 +21,51 @@ class AITaggingService {
         final List<ImageLabel> labels = await _labeler.processImage(inputImage);
 
         if (labels.isNotEmpty) {
-          final tags = labels.map((l) => l.label.toLowerCase()).toList();
-          await _db.updatePhotoTags(photo.id, tags);
+          final Set<String> tags = {};
+          for (var label in labels) {
+            final name = label.label.toLowerCase();
+            tags.add(name);
+            
+            // Voeg Nederlandse termen en categorieën toe voor betere zoekbaarheid
+            if (_categoryMappings.containsKey(name)) {
+              tags.addAll(_categoryMappings[name]!);
+            }
+          }
+          
+          await _db.updatePhotoTags(photo.id, tags.toList());
         }
       } catch (e) {
-        // Log error in a production app
+        // Log error
       }
     }
   }
+
+  static const Map<String, List<String>> _categoryMappings = {
+    'animal': ['dier'],
+    'dog': ['hond', 'dier'],
+    'cat': ['kat', 'dier'],
+    'bird': ['vogel', 'dier'],
+    'horse': ['paard', 'dier'],
+    'elephant': ['olifant', 'dier'],
+    'fish': ['vis', 'dier'],
+    'insect': ['insect', 'dier'],
+    'butterfly': ['vlinder', 'insect', 'dier'],
+    'plant': ['plant'],
+    'flower': ['bloem', 'plant'],
+    'tree': ['boom', 'plant'],
+    'grass': ['gras', 'plant'],
+    'fruit': ['fruit', 'eten'],
+    'forest': ['bos', 'natuur'],
+    'mountain': ['berg', 'landschap'],
+    'water': ['water', 'zee', 'meer'],
+    'beach': ['strand', 'zee'],
+    'food': ['eten', 'voedsel'],
+    'car': ['auto', 'voertuig'],
+    'bicycle': ['fiets', 'voertuig'],
+    'building': ['gebouw', 'architectuur'],
+    'house': ['huis', 'gebouw'],
+    'skyscraper': ['wolkenkrabber', 'stad'],
+  };
 
   void dispose() {
     _labeler.close();

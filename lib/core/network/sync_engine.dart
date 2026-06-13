@@ -4,12 +4,12 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:ro_photo_viewer/core/database/app_database.dart';
-import 'package:ro_photo_viewer/core/network/kdrive_api_service.dart';
+import 'package:k_photo/core/database/app_database.dart';
+import 'package:k_photo/core/network/kdrive_api_service.dart';
 import 'package:exif/exif.dart';
 import 'package:geocoding/geocoding.dart';
 
-import 'package:ro_photo_viewer/core/services/ai_tagging_service.dart';
+import 'package:k_photo/core/services/ai_tagging_service.dart';
 
 class SyncEngine {
   final KDriveApiService _apiService;
@@ -176,9 +176,6 @@ class SyncEngine {
       final aiService = AITaggingService(_db);
       aiService.processPendingPhotos();
 
-      // Start achtergrond download van high-res foto's (nieuwste eerst)
-      preDownloadHighRes();
-
     } catch (e, stack) {
       debugPrint('Sync: Fout — $e\n$stack');
     } finally {
@@ -305,11 +302,12 @@ class SyncEngine {
             final country = p.country;
             
             if (city != null) {
-              if (country != null && country.toLowerCase() != 'netherlands' && country.toLowerCase() != 'nederland') {
-                locationName = '$city ($country)';
-              } else {
-                locationName = city;
+              locationName = city;
+              if (country != null) {
+                locationName = '$city, $country';
               }
+            } else if (country != null) {
+              locationName = country;
             }
           }
         } catch (e) {

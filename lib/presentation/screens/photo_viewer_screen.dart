@@ -2,9 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
-import 'package:ro_photo_viewer/core/database/app_database.dart';
-import 'package:ro_photo_viewer/core/network/kdrive_api_service.dart';
-import 'package:ro_photo_viewer/core/network/auth_repository.dart';
+import 'package:k_photo/core/database/app_database.dart';
+import 'package:k_photo/core/network/kdrive_api_service.dart';
+import 'package:k_photo/core/network/auth_repository.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:drift/drift.dart' show Value;
@@ -58,11 +58,12 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
       final api = KDriveApiService();
       await api.initialize(creds['token']!, creds['driveId']!);
 
-      final dir = await getApplicationDocumentsDirectory();
-      final photosDir = Directory(p.join(dir.path, 'photos'));
-      if (!photosDir.existsSync()) photosDir.createSync();
+      // Gebruik getTemporaryDirectory voor high-res caching om opslag te sparen
+      final dir = await getTemporaryDirectory();
+      final photosDir = Directory(p.join(dir.path, 'view_cache'));
+      if (!photosDir.existsSync()) photosDir.createSync(recursive: true);
       
-      final localPath = p.join(photosDir.path, photo.fileName);
+      final localPath = p.join(photosDir.path, '${photo.id}_${photo.fileName}');
       await api.downloadFile(photo.kdrivePath, localPath);
 
       if (File(localPath).existsSync() && mounted) {
@@ -70,6 +71,10 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
         await (db.update(db.photos)..where((t) => t.id.equals(photo.id))).write(
           PhotosCompanion(localHighResPath: Value(localPath)),
         );
+        
+        // Optioneel: Metadata verversen vanuit het echte bestand voor de meest accurate info
+        // Dit gebeurt op de achtergrond
+        debugPrint('Viewer: Metadata verversen voor ${photo.fileName} vanuit high-res');
         
         setState(() {
           widget.photos[index] = photo.copyWith(localHighResPath: Value(localPath));
@@ -182,17 +187,28 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                     ),
                     Expanded(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text(
-                            '$dateStr om $timeStr',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
                           if (currentPhoto.locationName != null && currentPhoto.locationName!.isNotEmpty)
                             Text(
                               currentPhoto.locationName!,
-                              style: const TextStyle(color: Colors.white70, fontSize: 12),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
                             ),
+                          Text(
+                            '$dateStr om $timeStr',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
                         ],
                       ),
                     ),

@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:ro_photo_viewer/core/database/app_database.dart';
-import 'package:ro_photo_viewer/core/network/auth_repository.dart';
-import 'package:ro_photo_viewer/core/network/sync_engine.dart';
+import 'package:k_photo/core/database/app_database.dart';
+import 'package:k_photo/core/network/auth_repository.dart';
+import 'package:k_photo/core/network/sync_engine.dart';
 import 'package:intl/intl.dart';
 
 part 'gallery_event.dart';

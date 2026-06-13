@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:ro_photo_viewer/core/network/auth_repository.dart';
-import 'package:ro_photo_viewer/core/network/kdrive_api_service.dart';
-import 'package:ro_photo_viewer/presentation/screens/gallery_screen.dart';
+import 'package:k_photo/core/network/auth_repository.dart';
+import 'package:k_photo/core/network/kdrive_api_service.dart';
+import 'package:k_photo/presentation/screens/gallery_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final KDriveApiService apiService;

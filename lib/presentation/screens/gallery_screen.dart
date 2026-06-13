@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ro_photo_viewer/core/database/app_database.dart';
+import 'package:k_photo/core/database/app_database.dart';
 
-import 'package:ro_photo_viewer/presentation/blocs/gallery_bloc.dart';
+import 'package:k_photo/presentation/blocs/gallery_bloc.dart';
 
-import 'package:ro_photo_viewer/presentation/screens/photo_viewer_screen.dart';
-import 'package:ro_photo_viewer/presentation/screens/settings_screen.dart';
+import 'package:k_photo/presentation/screens/photo_viewer_screen.dart';
+import 'package:k_photo/presentation/screens/settings_screen.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:share_plus/share_plus.dart';
 

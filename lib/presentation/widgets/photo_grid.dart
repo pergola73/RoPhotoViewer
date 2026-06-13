@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-import 'package:ro_photo_viewer/core/database/app_database.dart';
-import 'package:ro_photo_viewer/presentation/screens/photo_viewer_screen.dart';
+import 'package:k_photo/core/database/app_database.dart';
+import 'package:k_photo/presentation/screens/photo_viewer_screen.dart';
 
 class PhotoGrid extends StatelessWidget {
   final List<Photo> photos;

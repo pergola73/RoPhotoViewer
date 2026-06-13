@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:ro_photo_viewer/core/network/auth_repository.dart';
+import 'package:k_photo/core/network/auth_repository.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
-import 'package:ro_photo_viewer/presentation/screens/folder_browser_screen.dart';
+import 'package:k_photo/presentation/screens/folder_browser_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -115,6 +117,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _clearCache() async {
+    final dir = await getTemporaryDirectory();
+    final cacheDir = Directory('${dir.path}/view_cache');
+    if (await cacheDir.exists()) {
+      await cacheDir.delete(recursive: true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cache met grote foto\'s is geleegd')),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cache is al leeg')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -194,6 +215,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       padding: EdgeInsets.all(8.0),
                       child: Text('Geen mappen geselecteerd.', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
                     ),
+                  const SizedBox(height: 32),
+                  const Text('Opslagbeheer', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    leading: const Icon(Icons.cleaning_services),
+                    title: const Text('Cache legen'),
+                    subtitle: const Text('Verwijder lokaal gedownloade grote foto\'s'),
+                    onTap: _clearCache,
+                    tileColor: Colors.orange.withOpacity(0.05),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                   const SizedBox(height: 32),
                   const Text('App Delen', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
