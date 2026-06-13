@@ -72,5 +72,7 @@
 	<string>K-Photo heeft toegang nodig tot de camera om direct foto's te kunnen maken en uploaden naar kDrive.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>K-Photo heeft toegang nodig tot de microfoon voor het opnemen van video's.</string>
+	<key>GoogleMapsApiKey</key>
+	<string>$(MAPS_API_KEY)</string>
 </dict>
 </plist>
