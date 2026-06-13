@@ -1,0 +1,3 @@
+// Kopieer dit bestand naar Config.xcconfig en vul je eigen sleutel in.
+// Dit bestand (Config.xcconfig) moet NIET in Git worden gezet.
+MAPS_API_KEY=JOUW_GOOGLE_MAPS_API_KEY_HIER
