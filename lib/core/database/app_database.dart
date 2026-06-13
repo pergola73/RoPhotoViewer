@@ -20,6 +20,15 @@ class Photos extends Table {
   TextColumn get locationName => text().nullable()();
   RealColumn get latitude => real().nullable()();
   RealColumn get longitude => real().nullable()();
+  TextColumn get mediaType => text().withDefault(const Constant('image'))();
+  IntColumn get duration => integer().nullable()();
+  TextColumn get cameraModel => text().nullable()();
+  TextColumn get exposureTime => text().nullable()();
+  TextColumn get fNumber => text().nullable()();
+  IntColumn get iso => integer().nullable()();
+  TextColumn get focalLength => text().nullable()();
+  TextColumn get flash => text().nullable()();
+  TextColumn get lensModel => text().nullable()();
 }
 
 class Albums extends Table {
@@ -50,7 +59,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration {
@@ -68,6 +77,21 @@ class AppDatabase extends _$AppDatabase {
         if (from < 3) {
           await m.createTable(albums);
           await m.createTable(albumPhotos);
+        }
+        if (from < 4) {
+          await m.addColumn(photos, photos.mediaType);
+          await m.addColumn(photos, photos.duration);
+        }
+        if (from < 5) {
+          await m.addColumn(photos, photos.cameraModel);
+          await m.addColumn(photos, photos.exposureTime);
+          await m.addColumn(photos, photos.fNumber);
+          await m.addColumn(photos, photos.iso);
+          await m.addColumn(photos, photos.focalLength);
+        }
+        if (from < 6) {
+          await m.addColumn(photos, photos.flash);
+          await m.addColumn(photos, photos.lensModel);
         }
       },
     );

@@ -186,4 +186,17 @@ class KDriveApiService {
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>?> getFileExif(String fileId) async {
+    try {
+      final response = await _dio.get('/2/drive/$_driveId/files/$fileId');
+      final data = response.data;
+      if (data is Map && data['data'] != null) {
+        return data['data']['exif'] as Map<String, dynamic>?;
+      }
+    } catch (e) {
+      debugPrint('kDrive API: Fout bij ophalen EXIF voor $fileId: $e');
+    }
+    return null;
+  }
 }

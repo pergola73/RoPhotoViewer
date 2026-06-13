@@ -43,8 +43,35 @@ late final GeneratedColumn<double> latitude = GeneratedColumn<double>('latitude'
 static const VerificationMeta _longitudeMeta = const VerificationMeta('longitude');
 @override
 late final GeneratedColumn<double> longitude = GeneratedColumn<double>('longitude', aliasedName, true, type: DriftSqlType.double, requiredDuringInsert: false);
+static const VerificationMeta _mediaTypeMeta = const VerificationMeta('mediaType');
 @override
-List<GeneratedColumn> get $columns => [id, fileName, kdrivePath, dateTaken, localThumbnailPath, localHighResPath, remoteThumbnailUrl, aiTags, isFavorite, locationName, latitude, longitude];
+late final GeneratedColumn<String> mediaType = GeneratedColumn<String>('media_type', aliasedName, false, type: DriftSqlType.string, requiredDuringInsert: false, defaultValue: const Constant('image'));
+static const VerificationMeta _durationMeta = const VerificationMeta('duration');
+@override
+late final GeneratedColumn<int> duration = GeneratedColumn<int>('duration', aliasedName, true, type: DriftSqlType.int, requiredDuringInsert: false);
+static const VerificationMeta _cameraModelMeta = const VerificationMeta('cameraModel');
+@override
+late final GeneratedColumn<String> cameraModel = GeneratedColumn<String>('camera_model', aliasedName, true, type: DriftSqlType.string, requiredDuringInsert: false);
+static const VerificationMeta _exposureTimeMeta = const VerificationMeta('exposureTime');
+@override
+late final GeneratedColumn<String> exposureTime = GeneratedColumn<String>('exposure_time', aliasedName, true, type: DriftSqlType.string, requiredDuringInsert: false);
+static const VerificationMeta _fNumberMeta = const VerificationMeta('fNumber');
+@override
+late final GeneratedColumn<String> fNumber = GeneratedColumn<String>('f_number', aliasedName, true, type: DriftSqlType.string, requiredDuringInsert: false);
+static const VerificationMeta _isoMeta = const VerificationMeta('iso');
+@override
+late final GeneratedColumn<int> iso = GeneratedColumn<int>('iso', aliasedName, true, type: DriftSqlType.int, requiredDuringInsert: false);
+static const VerificationMeta _focalLengthMeta = const VerificationMeta('focalLength');
+@override
+late final GeneratedColumn<String> focalLength = GeneratedColumn<String>('focal_length', aliasedName, true, type: DriftSqlType.string, requiredDuringInsert: false);
+static const VerificationMeta _flashMeta = const VerificationMeta('flash');
+@override
+late final GeneratedColumn<String> flash = GeneratedColumn<String>('flash', aliasedName, true, type: DriftSqlType.string, requiredDuringInsert: false);
+static const VerificationMeta _lensModelMeta = const VerificationMeta('lensModel');
+@override
+late final GeneratedColumn<String> lensModel = GeneratedColumn<String>('lens_model', aliasedName, true, type: DriftSqlType.string, requiredDuringInsert: false);
+@override
+List<GeneratedColumn> get $columns => [id, fileName, kdrivePath, dateTaken, localThumbnailPath, localHighResPath, remoteThumbnailUrl, aiTags, isFavorite, locationName, latitude, longitude, mediaType, duration, cameraModel, exposureTime, fNumber, iso, focalLength, flash, lensModel];
 @override
 String get aliasedName => _alias ?? actualTableName;
 @override
@@ -74,12 +101,21 @@ context.handle(_remoteThumbnailUrlMeta, remoteThumbnailUrl.isAcceptableOrUnknown
 context.handle(_isFavoriteMeta, isFavorite.isAcceptableOrUnknown(data['is_favorite']!, _isFavoriteMeta));}if (data.containsKey('location_name')) {
 context.handle(_locationNameMeta, locationName.isAcceptableOrUnknown(data['location_name']!, _locationNameMeta));}if (data.containsKey('latitude')) {
 context.handle(_latitudeMeta, latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta));}if (data.containsKey('longitude')) {
-context.handle(_longitudeMeta, longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta));}return context;
+context.handle(_longitudeMeta, longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta));}if (data.containsKey('media_type')) {
+context.handle(_mediaTypeMeta, mediaType.isAcceptableOrUnknown(data['media_type']!, _mediaTypeMeta));}if (data.containsKey('duration')) {
+context.handle(_durationMeta, duration.isAcceptableOrUnknown(data['duration']!, _durationMeta));}if (data.containsKey('camera_model')) {
+context.handle(_cameraModelMeta, cameraModel.isAcceptableOrUnknown(data['camera_model']!, _cameraModelMeta));}if (data.containsKey('exposure_time')) {
+context.handle(_exposureTimeMeta, exposureTime.isAcceptableOrUnknown(data['exposure_time']!, _exposureTimeMeta));}if (data.containsKey('f_number')) {
+context.handle(_fNumberMeta, fNumber.isAcceptableOrUnknown(data['f_number']!, _fNumberMeta));}if (data.containsKey('iso')) {
+context.handle(_isoMeta, iso.isAcceptableOrUnknown(data['iso']!, _isoMeta));}if (data.containsKey('focal_length')) {
+context.handle(_focalLengthMeta, focalLength.isAcceptableOrUnknown(data['focal_length']!, _focalLengthMeta));}if (data.containsKey('flash')) {
+context.handle(_flashMeta, flash.isAcceptableOrUnknown(data['flash']!, _flashMeta));}if (data.containsKey('lens_model')) {
+context.handle(_lensModelMeta, lensModel.isAcceptableOrUnknown(data['lens_model']!, _lensModelMeta));}return context;
 }
 @override
 Set<GeneratedColumn> get $primaryKey => {id};
 @override Photo map(Map<String, dynamic> data, {String? tablePrefix})  {
-final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';return Photo(id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!, fileName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}file_name'])!, kdrivePath: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}kdrive_path'])!, dateTaken: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}date_taken'])!, localThumbnailPath: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}local_thumbnail_path']), localHighResPath: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}local_high_res_path']), remoteThumbnailUrl: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}remote_thumbnail_url']), aiTags: $PhotosTable.$converteraiTags.fromSql(attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}ai_tags'])!), isFavorite: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}is_favorite'])!, locationName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}location_name']), latitude: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}latitude']), longitude: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}longitude']), );
+final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';return Photo(id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!, fileName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}file_name'])!, kdrivePath: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}kdrive_path'])!, dateTaken: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}date_taken'])!, localThumbnailPath: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}local_thumbnail_path']), localHighResPath: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}local_high_res_path']), remoteThumbnailUrl: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}remote_thumbnail_url']), aiTags: $PhotosTable.$converteraiTags.fromSql(attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}ai_tags'])!), isFavorite: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}is_favorite'])!, locationName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}location_name']), latitude: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}latitude']), longitude: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}longitude']), mediaType: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}media_type'])!, duration: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}duration']), cameraModel: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}camera_model']), exposureTime: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}exposure_time']), fNumber: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}f_number']), iso: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}iso']), focalLength: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}focal_length']), flash: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}flash']), lensModel: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}lens_model']), );
 }
 @override
 $PhotosTable createAlias(String alias) {
@@ -97,7 +133,16 @@ final bool isFavorite;
 final String? locationName;
 final double? latitude;
 final double? longitude;
-const Photo({required this.id, required this.fileName, required this.kdrivePath, required this.dateTaken, this.localThumbnailPath, this.localHighResPath, this.remoteThumbnailUrl, required this.aiTags, required this.isFavorite, this.locationName, this.latitude, this.longitude});@override
+final String mediaType;
+final int? duration;
+final String? cameraModel;
+final String? exposureTime;
+final String? fNumber;
+final int? iso;
+final String? focalLength;
+final String? flash;
+final String? lensModel;
+const Photo({required this.id, required this.fileName, required this.kdrivePath, required this.dateTaken, this.localThumbnailPath, this.localHighResPath, this.remoteThumbnailUrl, required this.aiTags, required this.isFavorite, this.locationName, this.latitude, this.longitude, required this.mediaType, this.duration, this.cameraModel, this.exposureTime, this.fNumber, this.iso, this.focalLength, this.flash, this.lensModel});@override
 Map<String, Expression> toColumns(bool nullToAbsent) {
 final map = <String, Expression> {};map['id'] = Variable<int>(id);
 map['file_name'] = Variable<String>(fileName);
@@ -111,26 +156,35 @@ if (!nullToAbsent || localThumbnailPath != null){map['local_thumbnail_path'] = V
 if (!nullToAbsent || locationName != null){map['location_name'] = Variable<String>(locationName);
 }if (!nullToAbsent || latitude != null){map['latitude'] = Variable<double>(latitude);
 }if (!nullToAbsent || longitude != null){map['longitude'] = Variable<double>(longitude);
+}map['media_type'] = Variable<String>(mediaType);
+if (!nullToAbsent || duration != null){map['duration'] = Variable<int>(duration);
+}if (!nullToAbsent || cameraModel != null){map['camera_model'] = Variable<String>(cameraModel);
+}if (!nullToAbsent || exposureTime != null){map['exposure_time'] = Variable<String>(exposureTime);
+}if (!nullToAbsent || fNumber != null){map['f_number'] = Variable<String>(fNumber);
+}if (!nullToAbsent || iso != null){map['iso'] = Variable<int>(iso);
+}if (!nullToAbsent || focalLength != null){map['focal_length'] = Variable<String>(focalLength);
+}if (!nullToAbsent || flash != null){map['flash'] = Variable<String>(flash);
+}if (!nullToAbsent || lensModel != null){map['lens_model'] = Variable<String>(lensModel);
 }return map; 
 }
 PhotosCompanion toCompanion(bool nullToAbsent) {
-return PhotosCompanion(id: Value(id),fileName: Value(fileName),kdrivePath: Value(kdrivePath),dateTaken: Value(dateTaken),localThumbnailPath: localThumbnailPath == null && nullToAbsent ? const Value.absent() : Value(localThumbnailPath),localHighResPath: localHighResPath == null && nullToAbsent ? const Value.absent() : Value(localHighResPath),remoteThumbnailUrl: remoteThumbnailUrl == null && nullToAbsent ? const Value.absent() : Value(remoteThumbnailUrl),aiTags: Value(aiTags),isFavorite: Value(isFavorite),locationName: locationName == null && nullToAbsent ? const Value.absent() : Value(locationName),latitude: latitude == null && nullToAbsent ? const Value.absent() : Value(latitude),longitude: longitude == null && nullToAbsent ? const Value.absent() : Value(longitude),);
+return PhotosCompanion(id: Value(id),fileName: Value(fileName),kdrivePath: Value(kdrivePath),dateTaken: Value(dateTaken),localThumbnailPath: localThumbnailPath == null && nullToAbsent ? const Value.absent() : Value(localThumbnailPath),localHighResPath: localHighResPath == null && nullToAbsent ? const Value.absent() : Value(localHighResPath),remoteThumbnailUrl: remoteThumbnailUrl == null && nullToAbsent ? const Value.absent() : Value(remoteThumbnailUrl),aiTags: Value(aiTags),isFavorite: Value(isFavorite),locationName: locationName == null && nullToAbsent ? const Value.absent() : Value(locationName),latitude: latitude == null && nullToAbsent ? const Value.absent() : Value(latitude),longitude: longitude == null && nullToAbsent ? const Value.absent() : Value(longitude),mediaType: Value(mediaType),duration: duration == null && nullToAbsent ? const Value.absent() : Value(duration),cameraModel: cameraModel == null && nullToAbsent ? const Value.absent() : Value(cameraModel),exposureTime: exposureTime == null && nullToAbsent ? const Value.absent() : Value(exposureTime),fNumber: fNumber == null && nullToAbsent ? const Value.absent() : Value(fNumber),iso: iso == null && nullToAbsent ? const Value.absent() : Value(iso),focalLength: focalLength == null && nullToAbsent ? const Value.absent() : Value(focalLength),flash: flash == null && nullToAbsent ? const Value.absent() : Value(flash),lensModel: lensModel == null && nullToAbsent ? const Value.absent() : Value(lensModel),);
 }
 factory Photo.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
 serializer ??= driftRuntimeOptions.defaultSerializer;
-return Photo(id: serializer.fromJson<int>(json['id']),fileName: serializer.fromJson<String>(json['fileName']),kdrivePath: serializer.fromJson<String>(json['kdrivePath']),dateTaken: serializer.fromJson<DateTime>(json['dateTaken']),localThumbnailPath: serializer.fromJson<String?>(json['localThumbnailPath']),localHighResPath: serializer.fromJson<String?>(json['localHighResPath']),remoteThumbnailUrl: serializer.fromJson<String?>(json['remoteThumbnailUrl']),aiTags: serializer.fromJson<List<String>>(json['aiTags']),isFavorite: serializer.fromJson<bool>(json['isFavorite']),locationName: serializer.fromJson<String?>(json['locationName']),latitude: serializer.fromJson<double?>(json['latitude']),longitude: serializer.fromJson<double?>(json['longitude']),);}
+return Photo(id: serializer.fromJson<int>(json['id']),fileName: serializer.fromJson<String>(json['fileName']),kdrivePath: serializer.fromJson<String>(json['kdrivePath']),dateTaken: serializer.fromJson<DateTime>(json['dateTaken']),localThumbnailPath: serializer.fromJson<String?>(json['localThumbnailPath']),localHighResPath: serializer.fromJson<String?>(json['localHighResPath']),remoteThumbnailUrl: serializer.fromJson<String?>(json['remoteThumbnailUrl']),aiTags: serializer.fromJson<List<String>>(json['aiTags']),isFavorite: serializer.fromJson<bool>(json['isFavorite']),locationName: serializer.fromJson<String?>(json['locationName']),latitude: serializer.fromJson<double?>(json['latitude']),longitude: serializer.fromJson<double?>(json['longitude']),mediaType: serializer.fromJson<String>(json['mediaType']),duration: serializer.fromJson<int?>(json['duration']),cameraModel: serializer.fromJson<String?>(json['cameraModel']),exposureTime: serializer.fromJson<String?>(json['exposureTime']),fNumber: serializer.fromJson<String?>(json['fNumber']),iso: serializer.fromJson<int?>(json['iso']),focalLength: serializer.fromJson<String?>(json['focalLength']),flash: serializer.fromJson<String?>(json['flash']),lensModel: serializer.fromJson<String?>(json['lensModel']),);}
 @override Map<String, dynamic> toJson({ValueSerializer? serializer}) {
 serializer ??= driftRuntimeOptions.defaultSerializer;
 return <String, dynamic>{
-'id': serializer.toJson<int>(id),'fileName': serializer.toJson<String>(fileName),'kdrivePath': serializer.toJson<String>(kdrivePath),'dateTaken': serializer.toJson<DateTime>(dateTaken),'localThumbnailPath': serializer.toJson<String?>(localThumbnailPath),'localHighResPath': serializer.toJson<String?>(localHighResPath),'remoteThumbnailUrl': serializer.toJson<String?>(remoteThumbnailUrl),'aiTags': serializer.toJson<List<String>>(aiTags),'isFavorite': serializer.toJson<bool>(isFavorite),'locationName': serializer.toJson<String?>(locationName),'latitude': serializer.toJson<double?>(latitude),'longitude': serializer.toJson<double?>(longitude),};}Photo copyWith({int? id,String? fileName,String? kdrivePath,DateTime? dateTaken,Value<String?> localThumbnailPath = const Value.absent(),Value<String?> localHighResPath = const Value.absent(),Value<String?> remoteThumbnailUrl = const Value.absent(),List<String>? aiTags,bool? isFavorite,Value<String?> locationName = const Value.absent(),Value<double?> latitude = const Value.absent(),Value<double?> longitude = const Value.absent()}) => Photo(id: id ?? this.id,fileName: fileName ?? this.fileName,kdrivePath: kdrivePath ?? this.kdrivePath,dateTaken: dateTaken ?? this.dateTaken,localThumbnailPath: localThumbnailPath.present ? localThumbnailPath.value : this.localThumbnailPath,localHighResPath: localHighResPath.present ? localHighResPath.value : this.localHighResPath,remoteThumbnailUrl: remoteThumbnailUrl.present ? remoteThumbnailUrl.value : this.remoteThumbnailUrl,aiTags: aiTags ?? this.aiTags,isFavorite: isFavorite ?? this.isFavorite,locationName: locationName.present ? locationName.value : this.locationName,latitude: latitude.present ? latitude.value : this.latitude,longitude: longitude.present ? longitude.value : this.longitude,);Photo copyWithCompanion(PhotosCompanion data) {
+'id': serializer.toJson<int>(id),'fileName': serializer.toJson<String>(fileName),'kdrivePath': serializer.toJson<String>(kdrivePath),'dateTaken': serializer.toJson<DateTime>(dateTaken),'localThumbnailPath': serializer.toJson<String?>(localThumbnailPath),'localHighResPath': serializer.toJson<String?>(localHighResPath),'remoteThumbnailUrl': serializer.toJson<String?>(remoteThumbnailUrl),'aiTags': serializer.toJson<List<String>>(aiTags),'isFavorite': serializer.toJson<bool>(isFavorite),'locationName': serializer.toJson<String?>(locationName),'latitude': serializer.toJson<double?>(latitude),'longitude': serializer.toJson<double?>(longitude),'mediaType': serializer.toJson<String>(mediaType),'duration': serializer.toJson<int?>(duration),'cameraModel': serializer.toJson<String?>(cameraModel),'exposureTime': serializer.toJson<String?>(exposureTime),'fNumber': serializer.toJson<String?>(fNumber),'iso': serializer.toJson<int?>(iso),'focalLength': serializer.toJson<String?>(focalLength),'flash': serializer.toJson<String?>(flash),'lensModel': serializer.toJson<String?>(lensModel),};}Photo copyWith({int? id,String? fileName,String? kdrivePath,DateTime? dateTaken,Value<String?> localThumbnailPath = const Value.absent(),Value<String?> localHighResPath = const Value.absent(),Value<String?> remoteThumbnailUrl = const Value.absent(),List<String>? aiTags,bool? isFavorite,Value<String?> locationName = const Value.absent(),Value<double?> latitude = const Value.absent(),Value<double?> longitude = const Value.absent(),String? mediaType,Value<int?> duration = const Value.absent(),Value<String?> cameraModel = const Value.absent(),Value<String?> exposureTime = const Value.absent(),Value<String?> fNumber = const Value.absent(),Value<int?> iso = const Value.absent(),Value<String?> focalLength = const Value.absent(),Value<String?> flash = const Value.absent(),Value<String?> lensModel = const Value.absent()}) => Photo(id: id ?? this.id,fileName: fileName ?? this.fileName,kdrivePath: kdrivePath ?? this.kdrivePath,dateTaken: dateTaken ?? this.dateTaken,localThumbnailPath: localThumbnailPath.present ? localThumbnailPath.value : this.localThumbnailPath,localHighResPath: localHighResPath.present ? localHighResPath.value : this.localHighResPath,remoteThumbnailUrl: remoteThumbnailUrl.present ? remoteThumbnailUrl.value : this.remoteThumbnailUrl,aiTags: aiTags ?? this.aiTags,isFavorite: isFavorite ?? this.isFavorite,locationName: locationName.present ? locationName.value : this.locationName,latitude: latitude.present ? latitude.value : this.latitude,longitude: longitude.present ? longitude.value : this.longitude,mediaType: mediaType ?? this.mediaType,duration: duration.present ? duration.value : this.duration,cameraModel: cameraModel.present ? cameraModel.value : this.cameraModel,exposureTime: exposureTime.present ? exposureTime.value : this.exposureTime,fNumber: fNumber.present ? fNumber.value : this.fNumber,iso: iso.present ? iso.value : this.iso,focalLength: focalLength.present ? focalLength.value : this.focalLength,flash: flash.present ? flash.value : this.flash,lensModel: lensModel.present ? lensModel.value : this.lensModel,);Photo copyWithCompanion(PhotosCompanion data) {
 return Photo(
-id: data.id.present ? data.id.value : this.id,fileName: data.fileName.present ? data.fileName.value : this.fileName,kdrivePath: data.kdrivePath.present ? data.kdrivePath.value : this.kdrivePath,dateTaken: data.dateTaken.present ? data.dateTaken.value : this.dateTaken,localThumbnailPath: data.localThumbnailPath.present ? data.localThumbnailPath.value : this.localThumbnailPath,localHighResPath: data.localHighResPath.present ? data.localHighResPath.value : this.localHighResPath,remoteThumbnailUrl: data.remoteThumbnailUrl.present ? data.remoteThumbnailUrl.value : this.remoteThumbnailUrl,aiTags: data.aiTags.present ? data.aiTags.value : this.aiTags,isFavorite: data.isFavorite.present ? data.isFavorite.value : this.isFavorite,locationName: data.locationName.present ? data.locationName.value : this.locationName,latitude: data.latitude.present ? data.latitude.value : this.latitude,longitude: data.longitude.present ? data.longitude.value : this.longitude,);
+id: data.id.present ? data.id.value : this.id,fileName: data.fileName.present ? data.fileName.value : this.fileName,kdrivePath: data.kdrivePath.present ? data.kdrivePath.value : this.kdrivePath,dateTaken: data.dateTaken.present ? data.dateTaken.value : this.dateTaken,localThumbnailPath: data.localThumbnailPath.present ? data.localThumbnailPath.value : this.localThumbnailPath,localHighResPath: data.localHighResPath.present ? data.localHighResPath.value : this.localHighResPath,remoteThumbnailUrl: data.remoteThumbnailUrl.present ? data.remoteThumbnailUrl.value : this.remoteThumbnailUrl,aiTags: data.aiTags.present ? data.aiTags.value : this.aiTags,isFavorite: data.isFavorite.present ? data.isFavorite.value : this.isFavorite,locationName: data.locationName.present ? data.locationName.value : this.locationName,latitude: data.latitude.present ? data.latitude.value : this.latitude,longitude: data.longitude.present ? data.longitude.value : this.longitude,mediaType: data.mediaType.present ? data.mediaType.value : this.mediaType,duration: data.duration.present ? data.duration.value : this.duration,cameraModel: data.cameraModel.present ? data.cameraModel.value : this.cameraModel,exposureTime: data.exposureTime.present ? data.exposureTime.value : this.exposureTime,fNumber: data.fNumber.present ? data.fNumber.value : this.fNumber,iso: data.iso.present ? data.iso.value : this.iso,focalLength: data.focalLength.present ? data.focalLength.value : this.focalLength,flash: data.flash.present ? data.flash.value : this.flash,lensModel: data.lensModel.present ? data.lensModel.value : this.lensModel,);
 }
 @override
-String toString() {return (StringBuffer('Photo(')..write('id: $id, ')..write('fileName: $fileName, ')..write('kdrivePath: $kdrivePath, ')..write('dateTaken: $dateTaken, ')..write('localThumbnailPath: $localThumbnailPath, ')..write('localHighResPath: $localHighResPath, ')..write('remoteThumbnailUrl: $remoteThumbnailUrl, ')..write('aiTags: $aiTags, ')..write('isFavorite: $isFavorite, ')..write('locationName: $locationName, ')..write('latitude: $latitude, ')..write('longitude: $longitude')..write(')')).toString();}
+String toString() {return (StringBuffer('Photo(')..write('id: $id, ')..write('fileName: $fileName, ')..write('kdrivePath: $kdrivePath, ')..write('dateTaken: $dateTaken, ')..write('localThumbnailPath: $localThumbnailPath, ')..write('localHighResPath: $localHighResPath, ')..write('remoteThumbnailUrl: $remoteThumbnailUrl, ')..write('aiTags: $aiTags, ')..write('isFavorite: $isFavorite, ')..write('locationName: $locationName, ')..write('latitude: $latitude, ')..write('longitude: $longitude, ')..write('mediaType: $mediaType, ')..write('duration: $duration, ')..write('cameraModel: $cameraModel, ')..write('exposureTime: $exposureTime, ')..write('fNumber: $fNumber, ')..write('iso: $iso, ')..write('focalLength: $focalLength, ')..write('flash: $flash, ')..write('lensModel: $lensModel')..write(')')).toString();}
 @override
- int get hashCode => Object.hash(id, fileName, kdrivePath, dateTaken, localThumbnailPath, localHighResPath, remoteThumbnailUrl, aiTags, isFavorite, locationName, latitude, longitude);@override
-bool operator ==(Object other) => identical(this, other) || (other is Photo && other.id == this.id && other.fileName == this.fileName && other.kdrivePath == this.kdrivePath && other.dateTaken == this.dateTaken && other.localThumbnailPath == this.localThumbnailPath && other.localHighResPath == this.localHighResPath && other.remoteThumbnailUrl == this.remoteThumbnailUrl && other.aiTags == this.aiTags && other.isFavorite == this.isFavorite && other.locationName == this.locationName && other.latitude == this.latitude && other.longitude == this.longitude);
+ int get hashCode => Object.hashAll([id, fileName, kdrivePath, dateTaken, localThumbnailPath, localHighResPath, remoteThumbnailUrl, aiTags, isFavorite, locationName, latitude, longitude, mediaType, duration, cameraModel, exposureTime, fNumber, iso, focalLength, flash, lensModel]);@override
+bool operator ==(Object other) => identical(this, other) || (other is Photo && other.id == this.id && other.fileName == this.fileName && other.kdrivePath == this.kdrivePath && other.dateTaken == this.dateTaken && other.localThumbnailPath == this.localThumbnailPath && other.localHighResPath == this.localHighResPath && other.remoteThumbnailUrl == this.remoteThumbnailUrl && other.aiTags == this.aiTags && other.isFavorite == this.isFavorite && other.locationName == this.locationName && other.latitude == this.latitude && other.longitude == this.longitude && other.mediaType == this.mediaType && other.duration == this.duration && other.cameraModel == this.cameraModel && other.exposureTime == this.exposureTime && other.fNumber == this.fNumber && other.iso == this.iso && other.focalLength == this.focalLength && other.flash == this.flash && other.lensModel == this.lensModel);
 }class PhotosCompanion extends UpdateCompanion<Photo> {
 final Value<int> id;
 final Value<String> fileName;
@@ -144,8 +198,17 @@ final Value<bool> isFavorite;
 final Value<String?> locationName;
 final Value<double?> latitude;
 final Value<double?> longitude;
-const PhotosCompanion({this.id = const Value.absent(),this.fileName = const Value.absent(),this.kdrivePath = const Value.absent(),this.dateTaken = const Value.absent(),this.localThumbnailPath = const Value.absent(),this.localHighResPath = const Value.absent(),this.remoteThumbnailUrl = const Value.absent(),this.aiTags = const Value.absent(),this.isFavorite = const Value.absent(),this.locationName = const Value.absent(),this.latitude = const Value.absent(),this.longitude = const Value.absent(),});
-PhotosCompanion.insert({this.id = const Value.absent(),required String fileName,required String kdrivePath,required DateTime dateTaken,this.localThumbnailPath = const Value.absent(),this.localHighResPath = const Value.absent(),this.remoteThumbnailUrl = const Value.absent(),required List<String> aiTags,this.isFavorite = const Value.absent(),this.locationName = const Value.absent(),this.latitude = const Value.absent(),this.longitude = const Value.absent(),}): fileName = Value(fileName), kdrivePath = Value(kdrivePath), dateTaken = Value(dateTaken), aiTags = Value(aiTags);
+final Value<String> mediaType;
+final Value<int?> duration;
+final Value<String?> cameraModel;
+final Value<String?> exposureTime;
+final Value<String?> fNumber;
+final Value<int?> iso;
+final Value<String?> focalLength;
+final Value<String?> flash;
+final Value<String?> lensModel;
+const PhotosCompanion({this.id = const Value.absent(),this.fileName = const Value.absent(),this.kdrivePath = const Value.absent(),this.dateTaken = const Value.absent(),this.localThumbnailPath = const Value.absent(),this.localHighResPath = const Value.absent(),this.remoteThumbnailUrl = const Value.absent(),this.aiTags = const Value.absent(),this.isFavorite = const Value.absent(),this.locationName = const Value.absent(),this.latitude = const Value.absent(),this.longitude = const Value.absent(),this.mediaType = const Value.absent(),this.duration = const Value.absent(),this.cameraModel = const Value.absent(),this.exposureTime = const Value.absent(),this.fNumber = const Value.absent(),this.iso = const Value.absent(),this.focalLength = const Value.absent(),this.flash = const Value.absent(),this.lensModel = const Value.absent(),});
+PhotosCompanion.insert({this.id = const Value.absent(),required String fileName,required String kdrivePath,required DateTime dateTaken,this.localThumbnailPath = const Value.absent(),this.localHighResPath = const Value.absent(),this.remoteThumbnailUrl = const Value.absent(),required List<String> aiTags,this.isFavorite = const Value.absent(),this.locationName = const Value.absent(),this.latitude = const Value.absent(),this.longitude = const Value.absent(),this.mediaType = const Value.absent(),this.duration = const Value.absent(),this.cameraModel = const Value.absent(),this.exposureTime = const Value.absent(),this.fNumber = const Value.absent(),this.iso = const Value.absent(),this.focalLength = const Value.absent(),this.flash = const Value.absent(),this.lensModel = const Value.absent(),}): fileName = Value(fileName), kdrivePath = Value(kdrivePath), dateTaken = Value(dateTaken), aiTags = Value(aiTags);
 static Insertable<Photo> custom({Expression<int>? id, 
 Expression<String>? fileName, 
 Expression<String>? kdrivePath, 
@@ -158,10 +221,19 @@ Expression<bool>? isFavorite,
 Expression<String>? locationName, 
 Expression<double>? latitude, 
 Expression<double>? longitude, 
+Expression<String>? mediaType, 
+Expression<int>? duration, 
+Expression<String>? cameraModel, 
+Expression<String>? exposureTime, 
+Expression<String>? fNumber, 
+Expression<int>? iso, 
+Expression<String>? focalLength, 
+Expression<String>? flash, 
+Expression<String>? lensModel, 
 }) {
-return RawValuesInsertable({if (id != null)'id': id,if (fileName != null)'file_name': fileName,if (kdrivePath != null)'kdrive_path': kdrivePath,if (dateTaken != null)'date_taken': dateTaken,if (localThumbnailPath != null)'local_thumbnail_path': localThumbnailPath,if (localHighResPath != null)'local_high_res_path': localHighResPath,if (remoteThumbnailUrl != null)'remote_thumbnail_url': remoteThumbnailUrl,if (aiTags != null)'ai_tags': aiTags,if (isFavorite != null)'is_favorite': isFavorite,if (locationName != null)'location_name': locationName,if (latitude != null)'latitude': latitude,if (longitude != null)'longitude': longitude,});
-}PhotosCompanion copyWith({Value<int>? id, Value<String>? fileName, Value<String>? kdrivePath, Value<DateTime>? dateTaken, Value<String?>? localThumbnailPath, Value<String?>? localHighResPath, Value<String?>? remoteThumbnailUrl, Value<List<String>>? aiTags, Value<bool>? isFavorite, Value<String?>? locationName, Value<double?>? latitude, Value<double?>? longitude}) {
-return PhotosCompanion(id: id ?? this.id,fileName: fileName ?? this.fileName,kdrivePath: kdrivePath ?? this.kdrivePath,dateTaken: dateTaken ?? this.dateTaken,localThumbnailPath: localThumbnailPath ?? this.localThumbnailPath,localHighResPath: localHighResPath ?? this.localHighResPath,remoteThumbnailUrl: remoteThumbnailUrl ?? this.remoteThumbnailUrl,aiTags: aiTags ?? this.aiTags,isFavorite: isFavorite ?? this.isFavorite,locationName: locationName ?? this.locationName,latitude: latitude ?? this.latitude,longitude: longitude ?? this.longitude,);
+return RawValuesInsertable({if (id != null)'id': id,if (fileName != null)'file_name': fileName,if (kdrivePath != null)'kdrive_path': kdrivePath,if (dateTaken != null)'date_taken': dateTaken,if (localThumbnailPath != null)'local_thumbnail_path': localThumbnailPath,if (localHighResPath != null)'local_high_res_path': localHighResPath,if (remoteThumbnailUrl != null)'remote_thumbnail_url': remoteThumbnailUrl,if (aiTags != null)'ai_tags': aiTags,if (isFavorite != null)'is_favorite': isFavorite,if (locationName != null)'location_name': locationName,if (latitude != null)'latitude': latitude,if (longitude != null)'longitude': longitude,if (mediaType != null)'media_type': mediaType,if (duration != null)'duration': duration,if (cameraModel != null)'camera_model': cameraModel,if (exposureTime != null)'exposure_time': exposureTime,if (fNumber != null)'f_number': fNumber,if (iso != null)'iso': iso,if (focalLength != null)'focal_length': focalLength,if (flash != null)'flash': flash,if (lensModel != null)'lens_model': lensModel,});
+}PhotosCompanion copyWith({Value<int>? id, Value<String>? fileName, Value<String>? kdrivePath, Value<DateTime>? dateTaken, Value<String?>? localThumbnailPath, Value<String?>? localHighResPath, Value<String?>? remoteThumbnailUrl, Value<List<String>>? aiTags, Value<bool>? isFavorite, Value<String?>? locationName, Value<double?>? latitude, Value<double?>? longitude, Value<String>? mediaType, Value<int?>? duration, Value<String?>? cameraModel, Value<String?>? exposureTime, Value<String?>? fNumber, Value<int?>? iso, Value<String?>? focalLength, Value<String?>? flash, Value<String?>? lensModel}) {
+return PhotosCompanion(id: id ?? this.id,fileName: fileName ?? this.fileName,kdrivePath: kdrivePath ?? this.kdrivePath,dateTaken: dateTaken ?? this.dateTaken,localThumbnailPath: localThumbnailPath ?? this.localThumbnailPath,localHighResPath: localHighResPath ?? this.localHighResPath,remoteThumbnailUrl: remoteThumbnailUrl ?? this.remoteThumbnailUrl,aiTags: aiTags ?? this.aiTags,isFavorite: isFavorite ?? this.isFavorite,locationName: locationName ?? this.locationName,latitude: latitude ?? this.latitude,longitude: longitude ?? this.longitude,mediaType: mediaType ?? this.mediaType,duration: duration ?? this.duration,cameraModel: cameraModel ?? this.cameraModel,exposureTime: exposureTime ?? this.exposureTime,fNumber: fNumber ?? this.fNumber,iso: iso ?? this.iso,focalLength: focalLength ?? this.focalLength,flash: flash ?? this.flash,lensModel: lensModel ?? this.lensModel,);
 }
 @override
 Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -189,10 +261,28 @@ if (latitude.present) {
 map['latitude'] = Variable<double>(latitude.value);}
 if (longitude.present) {
 map['longitude'] = Variable<double>(longitude.value);}
+if (mediaType.present) {
+map['media_type'] = Variable<String>(mediaType.value);}
+if (duration.present) {
+map['duration'] = Variable<int>(duration.value);}
+if (cameraModel.present) {
+map['camera_model'] = Variable<String>(cameraModel.value);}
+if (exposureTime.present) {
+map['exposure_time'] = Variable<String>(exposureTime.value);}
+if (fNumber.present) {
+map['f_number'] = Variable<String>(fNumber.value);}
+if (iso.present) {
+map['iso'] = Variable<int>(iso.value);}
+if (focalLength.present) {
+map['focal_length'] = Variable<String>(focalLength.value);}
+if (flash.present) {
+map['flash'] = Variable<String>(flash.value);}
+if (lensModel.present) {
+map['lens_model'] = Variable<String>(lensModel.value);}
 return map; 
 }
 @override
-String toString() {return (StringBuffer('PhotosCompanion(')..write('id: $id, ')..write('fileName: $fileName, ')..write('kdrivePath: $kdrivePath, ')..write('dateTaken: $dateTaken, ')..write('localThumbnailPath: $localThumbnailPath, ')..write('localHighResPath: $localHighResPath, ')..write('remoteThumbnailUrl: $remoteThumbnailUrl, ')..write('aiTags: $aiTags, ')..write('isFavorite: $isFavorite, ')..write('locationName: $locationName, ')..write('latitude: $latitude, ')..write('longitude: $longitude')..write(')')).toString();}
+String toString() {return (StringBuffer('PhotosCompanion(')..write('id: $id, ')..write('fileName: $fileName, ')..write('kdrivePath: $kdrivePath, ')..write('dateTaken: $dateTaken, ')..write('localThumbnailPath: $localThumbnailPath, ')..write('localHighResPath: $localHighResPath, ')..write('remoteThumbnailUrl: $remoteThumbnailUrl, ')..write('aiTags: $aiTags, ')..write('isFavorite: $isFavorite, ')..write('locationName: $locationName, ')..write('latitude: $latitude, ')..write('longitude: $longitude, ')..write('mediaType: $mediaType, ')..write('duration: $duration, ')..write('cameraModel: $cameraModel, ')..write('exposureTime: $exposureTime, ')..write('fNumber: $fNumber, ')..write('iso: $iso, ')..write('focalLength: $focalLength, ')..write('flash: $flash, ')..write('lensModel: $lensModel')..write(')')).toString();}
 }
 class $AlbumsTable extends Albums with TableInfo<$AlbumsTable, Album>{
 @override final GeneratedDatabase attachedDatabase;
@@ -404,8 +494,8 @@ Iterable<TableInfo<Table, Object?>> get allTables => allSchemaEntities.whereType
 @override
 List<DatabaseSchemaEntity> get allSchemaEntities => [photos, albums, albumPhotos];
 }
-typedef $$PhotosTableCreateCompanionBuilder = PhotosCompanion Function({Value<int> id,required String fileName,required String kdrivePath,required DateTime dateTaken,Value<String?> localThumbnailPath,Value<String?> localHighResPath,Value<String?> remoteThumbnailUrl,required List<String> aiTags,Value<bool> isFavorite,Value<String?> locationName,Value<double?> latitude,Value<double?> longitude,});
-typedef $$PhotosTableUpdateCompanionBuilder = PhotosCompanion Function({Value<int> id,Value<String> fileName,Value<String> kdrivePath,Value<DateTime> dateTaken,Value<String?> localThumbnailPath,Value<String?> localHighResPath,Value<String?> remoteThumbnailUrl,Value<List<String>> aiTags,Value<bool> isFavorite,Value<String?> locationName,Value<double?> latitude,Value<double?> longitude,});
+typedef $$PhotosTableCreateCompanionBuilder = PhotosCompanion Function({Value<int> id,required String fileName,required String kdrivePath,required DateTime dateTaken,Value<String?> localThumbnailPath,Value<String?> localHighResPath,Value<String?> remoteThumbnailUrl,required List<String> aiTags,Value<bool> isFavorite,Value<String?> locationName,Value<double?> latitude,Value<double?> longitude,Value<String> mediaType,Value<int?> duration,Value<String?> cameraModel,Value<String?> exposureTime,Value<String?> fNumber,Value<int?> iso,Value<String?> focalLength,Value<String?> flash,Value<String?> lensModel,});
+typedef $$PhotosTableUpdateCompanionBuilder = PhotosCompanion Function({Value<int> id,Value<String> fileName,Value<String> kdrivePath,Value<DateTime> dateTaken,Value<String?> localThumbnailPath,Value<String?> localHighResPath,Value<String?> remoteThumbnailUrl,Value<List<String>> aiTags,Value<bool> isFavorite,Value<String?> locationName,Value<double?> latitude,Value<double?> longitude,Value<String> mediaType,Value<int?> duration,Value<String?> cameraModel,Value<String?> exposureTime,Value<String?> fNumber,Value<int?> iso,Value<String?> focalLength,Value<String?> flash,Value<String?> lensModel,});
       final class $$PhotosTableReferences extends BaseReferences<
         _$AppDatabase,
         $PhotosTable,
@@ -537,6 +627,51 @@ ColumnFilters<double> get longitude => $composableBuilder(
       builder: (column) => 
       ColumnFilters(column));
       
+ColumnFilters<String> get mediaType => $composableBuilder(
+      column: $table.mediaType,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<int> get duration => $composableBuilder(
+      column: $table.duration,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<String> get cameraModel => $composableBuilder(
+      column: $table.cameraModel,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<String> get exposureTime => $composableBuilder(
+      column: $table.exposureTime,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<String> get fNumber => $composableBuilder(
+      column: $table.fNumber,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<int> get iso => $composableBuilder(
+      column: $table.iso,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<String> get focalLength => $composableBuilder(
+      column: $table.focalLength,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<String> get flash => $composableBuilder(
+      column: $table.flash,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<String> get lensModel => $composableBuilder(
+      column: $table.lensModel,
+      builder: (column) => 
+      ColumnFilters(column));
+      
         Expression<bool> albumsRefs(
           Expression<bool> Function( $$AlbumsTableFilterComposer f) f
         ) {
@@ -648,6 +783,51 @@ ColumnOrderings<double> get longitude => $composableBuilder(
       builder: (column) => 
       ColumnOrderings(column));
       
+ColumnOrderings<String> get mediaType => $composableBuilder(
+      column: $table.mediaType,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<int> get duration => $composableBuilder(
+      column: $table.duration,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<String> get cameraModel => $composableBuilder(
+      column: $table.cameraModel,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<String> get exposureTime => $composableBuilder(
+      column: $table.exposureTime,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<String> get fNumber => $composableBuilder(
+      column: $table.fNumber,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<int> get iso => $composableBuilder(
+      column: $table.iso,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<String> get focalLength => $composableBuilder(
+      column: $table.focalLength,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<String> get flash => $composableBuilder(
+      column: $table.flash,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<String> get lensModel => $composableBuilder(
+      column: $table.lensModel,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
         }
       class $$PhotosTableAnnotationComposer extends Composer<
         _$AppDatabase,
@@ -705,6 +885,42 @@ GeneratedColumn<double> get latitude => $composableBuilder(
       
 GeneratedColumn<double> get longitude => $composableBuilder(
       column: $table.longitude,
+      builder: (column) => column);
+      
+GeneratedColumn<String> get mediaType => $composableBuilder(
+      column: $table.mediaType,
+      builder: (column) => column);
+      
+GeneratedColumn<int> get duration => $composableBuilder(
+      column: $table.duration,
+      builder: (column) => column);
+      
+GeneratedColumn<String> get cameraModel => $composableBuilder(
+      column: $table.cameraModel,
+      builder: (column) => column);
+      
+GeneratedColumn<String> get exposureTime => $composableBuilder(
+      column: $table.exposureTime,
+      builder: (column) => column);
+      
+GeneratedColumn<String> get fNumber => $composableBuilder(
+      column: $table.fNumber,
+      builder: (column) => column);
+      
+GeneratedColumn<int> get iso => $composableBuilder(
+      column: $table.iso,
+      builder: (column) => column);
+      
+GeneratedColumn<String> get focalLength => $composableBuilder(
+      column: $table.focalLength,
+      builder: (column) => column);
+      
+GeneratedColumn<String> get flash => $composableBuilder(
+      column: $table.flash,
+      builder: (column) => column);
+      
+GeneratedColumn<String> get lensModel => $composableBuilder(
+      column: $table.lensModel,
       builder: (column) => column);
       
         Expression<T> albumsRefs<T extends Object>(
@@ -767,8 +983,8 @@ GeneratedColumn<double> get longitude => $composableBuilder(
         createFilteringComposer: () => $$PhotosTableFilterComposer($db: db,$table:table),
         createOrderingComposer: () => $$PhotosTableOrderingComposer($db: db,$table:table),
         createComputedFieldComposer: () => $$PhotosTableAnnotationComposer($db: db,$table:table),
-        updateCompanionCallback: ({Value<int> id = const Value.absent(),Value<String> fileName = const Value.absent(),Value<String> kdrivePath = const Value.absent(),Value<DateTime> dateTaken = const Value.absent(),Value<String?> localThumbnailPath = const Value.absent(),Value<String?> localHighResPath = const Value.absent(),Value<String?> remoteThumbnailUrl = const Value.absent(),Value<List<String>> aiTags = const Value.absent(),Value<bool> isFavorite = const Value.absent(),Value<String?> locationName = const Value.absent(),Value<double?> latitude = const Value.absent(),Value<double?> longitude = const Value.absent(),})=> PhotosCompanion(id: id,fileName: fileName,kdrivePath: kdrivePath,dateTaken: dateTaken,localThumbnailPath: localThumbnailPath,localHighResPath: localHighResPath,remoteThumbnailUrl: remoteThumbnailUrl,aiTags: aiTags,isFavorite: isFavorite,locationName: locationName,latitude: latitude,longitude: longitude,),
-        createCompanionCallback: ({Value<int> id = const Value.absent(),required String fileName,required String kdrivePath,required DateTime dateTaken,Value<String?> localThumbnailPath = const Value.absent(),Value<String?> localHighResPath = const Value.absent(),Value<String?> remoteThumbnailUrl = const Value.absent(),required List<String> aiTags,Value<bool> isFavorite = const Value.absent(),Value<String?> locationName = const Value.absent(),Value<double?> latitude = const Value.absent(),Value<double?> longitude = const Value.absent(),})=> PhotosCompanion.insert(id: id,fileName: fileName,kdrivePath: kdrivePath,dateTaken: dateTaken,localThumbnailPath: localThumbnailPath,localHighResPath: localHighResPath,remoteThumbnailUrl: remoteThumbnailUrl,aiTags: aiTags,isFavorite: isFavorite,locationName: locationName,latitude: latitude,longitude: longitude,),
+        updateCompanionCallback: ({Value<int> id = const Value.absent(),Value<String> fileName = const Value.absent(),Value<String> kdrivePath = const Value.absent(),Value<DateTime> dateTaken = const Value.absent(),Value<String?> localThumbnailPath = const Value.absent(),Value<String?> localHighResPath = const Value.absent(),Value<String?> remoteThumbnailUrl = const Value.absent(),Value<List<String>> aiTags = const Value.absent(),Value<bool> isFavorite = const Value.absent(),Value<String?> locationName = const Value.absent(),Value<double?> latitude = const Value.absent(),Value<double?> longitude = const Value.absent(),Value<String> mediaType = const Value.absent(),Value<int?> duration = const Value.absent(),Value<String?> cameraModel = const Value.absent(),Value<String?> exposureTime = const Value.absent(),Value<String?> fNumber = const Value.absent(),Value<int?> iso = const Value.absent(),Value<String?> focalLength = const Value.absent(),Value<String?> flash = const Value.absent(),Value<String?> lensModel = const Value.absent(),})=> PhotosCompanion(id: id,fileName: fileName,kdrivePath: kdrivePath,dateTaken: dateTaken,localThumbnailPath: localThumbnailPath,localHighResPath: localHighResPath,remoteThumbnailUrl: remoteThumbnailUrl,aiTags: aiTags,isFavorite: isFavorite,locationName: locationName,latitude: latitude,longitude: longitude,mediaType: mediaType,duration: duration,cameraModel: cameraModel,exposureTime: exposureTime,fNumber: fNumber,iso: iso,focalLength: focalLength,flash: flash,lensModel: lensModel,),
+        createCompanionCallback: ({Value<int> id = const Value.absent(),required String fileName,required String kdrivePath,required DateTime dateTaken,Value<String?> localThumbnailPath = const Value.absent(),Value<String?> localHighResPath = const Value.absent(),Value<String?> remoteThumbnailUrl = const Value.absent(),required List<String> aiTags,Value<bool> isFavorite = const Value.absent(),Value<String?> locationName = const Value.absent(),Value<double?> latitude = const Value.absent(),Value<double?> longitude = const Value.absent(),Value<String> mediaType = const Value.absent(),Value<int?> duration = const Value.absent(),Value<String?> cameraModel = const Value.absent(),Value<String?> exposureTime = const Value.absent(),Value<String?> fNumber = const Value.absent(),Value<int?> iso = const Value.absent(),Value<String?> focalLength = const Value.absent(),Value<String?> flash = const Value.absent(),Value<String?> lensModel = const Value.absent(),})=> PhotosCompanion.insert(id: id,fileName: fileName,kdrivePath: kdrivePath,dateTaken: dateTaken,localThumbnailPath: localThumbnailPath,localHighResPath: localHighResPath,remoteThumbnailUrl: remoteThumbnailUrl,aiTags: aiTags,isFavorite: isFavorite,locationName: locationName,latitude: latitude,longitude: longitude,mediaType: mediaType,duration: duration,cameraModel: cameraModel,exposureTime: exposureTime,fNumber: fNumber,iso: iso,focalLength: focalLength,flash: flash,lensModel: lensModel,),
         withReferenceMapper: (p0) => p0
               .map(
                   (e) =>

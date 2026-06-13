@@ -9,10 +9,17 @@ import 'package:ro_photo_viewer/presentation/screens/gallery_screen.dart';
 import 'package:ro_photo_viewer/presentation/screens/login_screen.dart';
 import 'package:ro_photo_viewer/core/network/sync_engine.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
+import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('nl_NL', null);
+
+  final GoogleMapsFlutterPlatform mapsImplementation = GoogleMapsFlutterPlatform.instance;
+  if (mapsImplementation is GoogleMapsFlutterAndroid) {
+    mapsImplementation.useAndroidViewSurface = true;
+  }
   
   final database = AppDatabase();
   final apiService = KDriveApiService();

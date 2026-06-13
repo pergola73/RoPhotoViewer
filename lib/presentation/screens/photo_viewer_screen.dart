@@ -11,6 +11,9 @@ import 'package:drift/drift.dart' show Value;
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class PhotoViewerScreen extends StatefulWidget {
   final List<Photo> photos;
@@ -99,40 +102,46 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                 final thumbFile = photo.localThumbnailPath != null ? File(photo.localThumbnailPath!) : null;
 
                 return PhotoViewGalleryPageOptions.customChild(
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // 1. Altijd de thumbnail als basis tonen (snelle feedback)
-                      if (thumbFile != null && thumbFile.existsSync())
-                        Image.file(
-                          thumbFile,
-                          fit: BoxFit.contain,
-                          width: double.infinity,
-                          height: double.infinity,
-                          gaplessPlayback: true,
+                  child: photo.mediaType == 'video'
+                      ? VideoPlayerWidget(
+                          videoPath: photo.localHighResPath,
+                          thumbnailPath: photo.localThumbnailPath,
+                          isDownloading: _isDownloading[photo.id] == true,
+                          onPlayStateChanged: (isPlaying) {
+                            if (isPlaying && _showUI) {
+                              setState(() => _showUI = false);
+                            }
+                          },
+                        )
+                      : Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            if (thumbFile != null && thumbFile.existsSync())
+                              Image.file(
+                                thumbFile,
+                                fit: BoxFit.contain,
+                                width: double.infinity,
+                                height: double.infinity,
+                                gaplessPlayback: true,
+                              ),
+                            if (highResFile != null && highResFile.existsSync())
+                              Image.file(
+                                highResFile,
+                                fit: BoxFit.contain,
+                                width: double.infinity,
+                                height: double.infinity,
+                                gaplessPlayback: true,
+                              ),
+                            if (_isDownloading[photo.id] == true)
+                              const Center(
+                                child: SizedBox(
+                                  width: 30,
+                                  height: 30,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white24),
+                                ),
+                              ),
+                          ],
                         ),
-                      
-                      // 2. De high-res foto eroverheen laden
-                      if (highResFile != null && highResFile.existsSync())
-                        Image.file(
-                          highResFile,
-                          fit: BoxFit.contain,
-                          width: double.infinity,
-                          height: double.infinity,
-                          gaplessPlayback: true,
-                        ),
-                        
-                      // 3. Optioneel een kleine indicator als we nog aan het downloaden zijn
-                      if (_isDownloading[photo.id] == true)
-                        const Center(
-                          child: SizedBox(
-                            width: 30,
-                            height: 30,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white24),
-                          ),
-                        ),
-                    ],
-                  ),
                   initialScale: PhotoViewComputedScale.contained,
                   minScale: PhotoViewComputedScale.contained,
                   maxScale: PhotoViewComputedScale.covered * 2,
@@ -420,10 +429,178 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                   title: const Text('Locatie'),
                   subtitle: Text(photo.locationName!),
                 ),
+              if (photo.latitude != null && photo.longitude != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      height: 180,
+                      width: double.infinity,
+                      child: Builder(
+                        builder: (context) {
+                          try {
+                            return GoogleMap(
+                              initialCameraPosition: CameraPosition(
+                                target: LatLng(photo.latitude!, photo.longitude!),
+                                zoom: 12,
+                              ),
+                              markers: {
+                                Marker(
+                                  markerId: MarkerId(photo.id.toString()),
+                                  position: LatLng(photo.latitude!, photo.longitude!),
+                                ),
+                              },
+                              liteModeEnabled: true,
+                              myLocationButtonEnabled: false,
+                              zoomControlsEnabled: false,
+                              mapToolbarEnabled: false,
+                            );
+                          } catch (e) {
+                            return Container(
+                              color: Colors.grey[200],
+                              child: const Center(child: Text('Kaart niet beschikbaar')),
+                            );
+                          }
+                        }
+                      ),
+                    ),
+                  ),
+                ),
+              if (photo.cameraModel != null)
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Camera'),
+                  subtitle: Text(photo.cameraModel!),
+                ),
+              if (photo.lensModel != null)
+                ListTile(
+                  leading: const Icon(Icons.camera),
+                  title: const Text('Lens'),
+                  subtitle: Text(photo.lensModel!),
+                ),
+              if (photo.exposureTime != null || photo.fNumber != null || photo.iso != null || photo.focalLength != null)
+                ListTile(
+                  leading: const Icon(Icons.settings_brightness),
+                  title: const Text('Instellingen'),
+                  subtitle: Text([
+                    if (photo.exposureTime != null) photo.exposureTime,
+                    if (photo.fNumber != null) photo.fNumber,
+                    if (photo.iso != null) 'ISO ${photo.iso}',
+                    if (photo.focalLength != null) photo.focalLength,
+                  ].join(' • ')),
+                ),
+              if (photo.flash != null)
+                ListTile(
+                  leading: const Icon(Icons.flash_on),
+                  title: const Text('Flits'),
+                  subtitle: Text(photo.flash!),
+                ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class VideoPlayerWidget extends StatefulWidget {
+  final String? videoPath;
+  final String? thumbnailPath;
+  final bool isDownloading;
+  final Function(bool)? onPlayStateChanged;
+
+  const VideoPlayerWidget({
+    super.key,
+    this.videoPath,
+    this.thumbnailPath,
+    required this.isDownloading,
+    this.onPlayStateChanged,
+  });
+
+  @override
+  State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
+}
+
+class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
+  VideoPlayerController? _videoPlayerController;
+  ChewieController? _chewieController;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializePlayer();
+  }
+
+  @override
+  void didUpdateWidget(VideoPlayerWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.videoPath != oldWidget.videoPath) {
+      _initializePlayer();
+    }
+  }
+
+  Future<void> _initializePlayer() async {
+    if (widget.videoPath == null || !File(widget.videoPath!).existsSync()) return;
+
+    await _disposePlayer();
+
+    _videoPlayerController = VideoPlayerController.file(File(widget.videoPath!));
+    await _videoPlayerController!.initialize();
+    
+    _videoPlayerController!.addListener(() {
+      if (_videoPlayerController != null) {
+        widget.onPlayStateChanged?.call(_videoPlayerController!.value.isPlaying);
+      }
+    });
+
+    _chewieController = ChewieController(
+      videoPlayerController: _videoPlayerController!,
+      autoPlay: false,
+      looping: false,
+      aspectRatio: _videoPlayerController!.value.aspectRatio,
+      allowFullScreen: true,
+      allowMuting: true,
+      showControls: true,
+    );
+
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _disposePlayer() async {
+    _chewieController?.dispose();
+    await _videoPlayerController?.dispose();
+  }
+
+  @override
+  void dispose() {
+    _disposePlayer();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_chewieController != null && _videoPlayerController!.value.isInitialized) {
+      return Chewie(controller: _chewieController!);
+    }
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        if (widget.thumbnailPath != null && File(widget.thumbnailPath!).existsSync())
+          Image.file(
+            File(widget.thumbnailPath!),
+            fit: BoxFit.contain,
+            width: double.infinity,
+            height: double.infinity,
+          ),
+        const Icon(Icons.play_circle_outline, size: 80, color: Colors.white54),
+        if (widget.isDownloading)
+          const Positioned(
+            bottom: 20,
+            child: CircularProgressIndicator(color: Colors.white70),
+          ),
+      ],
     );
   }
 }

@@ -26,6 +26,15 @@ class _GalleryScreenState extends State<GalleryScreen> {
   double _baseScale = 1.0;
 
   @override
+  void initState() {
+    super.initState();
+    // Start automatische sync op de achtergrond bij openen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<GalleryBloc>().add(SyncWithKDrive());
+    });
+  }
+
+  @override
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
@@ -141,18 +150,24 @@ class _GalleryScreenState extends State<GalleryScreen> {
                         ),
                       ),
                       sliver: SliverGrid(
-                        gridDelegate: SliverQuiltedGridDelegate(
-                          crossAxisCount: crossAxisCount,
-                          mainAxisSpacing: 1,
-                          crossAxisSpacing: 1,
-                          repeatPattern: QuiltedGridRepeatPattern.same,
-                          pattern: [
-                            const QuiltedGridTile(2, 2),
-                            const QuiltedGridTile(1, 1),
-                            const QuiltedGridTile(1, 1),
-                            const QuiltedGridTile(1, 2),
-                          ],
-                        ),
+                        gridDelegate: crossAxisCount > 1 
+                          ? SliverQuiltedGridDelegate(
+                              crossAxisCount: crossAxisCount,
+                              mainAxisSpacing: 1,
+                              crossAxisSpacing: 1,
+                              repeatPattern: QuiltedGridRepeatPattern.same,
+                              pattern: [
+                                const QuiltedGridTile(2, 2),
+                                const QuiltedGridTile(1, 1),
+                                const QuiltedGridTile(1, 1),
+                                const QuiltedGridTile(1, 2),
+                              ],
+                            )
+                          : const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 1,
+                              mainAxisSpacing: 1,
+                              crossAxisSpacing: 1,
+                            ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
                             final photo = state.groupedPhotos[section]![index];
@@ -197,13 +212,19 @@ class _GalleryScreenState extends State<GalleryScreen> {
                                                   filterQuality: FilterQuality.low,
                                                 ),
                                                 // 2. High-res preview (indien aanwezig) voor de grote tegels
-                                                if ((crossAxisCount <= 2) && photo.localHighResPath != null && File(photo.localHighResPath!).existsSync())
+                                                if ((crossAxisCount <= 2) && photo.localHighResPath != null && File(photo.localHighResPath!).existsSync() && photo.mediaType == 'image')
                                                   Image.file(
                                                     File(photo.localHighResPath!),
                                                     fit: BoxFit.cover,
                                                     // Optimaliseer cacheWidth voor schermbreedte om geheugen te sparen
                                                     cacheWidth: crossAxisCount == 1 ? 1080 : 600,
                                                     filterQuality: FilterQuality.medium,
+                                                  ),
+                                                if (photo.mediaType == 'video')
+                                                  const Positioned(
+                                                    right: 8,
+                                                    bottom: 8,
+                                                    child: Icon(Icons.play_circle_fill, color: Colors.white70, size: 24),
                                                   ),
                                               ],
                                             )
