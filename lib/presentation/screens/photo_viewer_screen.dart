@@ -14,6 +14,8 @@ import 'package:open_filex/open_filex.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:k_photo/presentation/blocs/gallery_bloc.dart';
 
 class PhotoViewerScreen extends StatefulWidget {
   final List<Photo> photos;
@@ -72,13 +74,25 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
           PhotosCompanion(localHighResPath: Value(localPath)),
         );
         
-        // Optioneel: Metadata verversen vanuit het echte bestand voor de meest accurate info
-        // Dit gebeurt op de achtergrond
-        debugPrint('Viewer: Metadata verversen voor ${photo.fileName} vanuit high-res');
-        
+        // DIRECT DE FOTO TONEN
         setState(() {
           widget.photos[index] = photo.copyWith(localHighResPath: Value(localPath));
         });
+
+        // Metadata op de achtergrond verversen, NIET wachten
+        if (mounted) {
+          final syncEngine = BlocProvider.of<GalleryBloc>(context).syncEngine;
+          if (syncEngine != null) {
+            syncEngine.updateMetadataFromFile(photo.id, localPath).then((_) async {
+              if (mounted) {
+                final updatedPhoto = await (db.select(db.photos)..where((t) => t.id.equals(photo.id))).getSingle();
+                setState(() {
+                  widget.photos[index] = updatedPhoto;
+                });
+              }
+            });
+          }
+        }
       }
     } catch (e) {
       debugPrint('Viewer: Download failed for ${photo.fileName}: $e');
@@ -397,8 +411,18 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
       final db = AppDatabase();
       await (db.delete(db.photos)..where((t) => t.id.equals(photo.id))).go();
       
-      if (photo.localHighResPath != null) File(photo.localHighResPath!).delete().catchError((_) {});
-      if (photo.localThumbnailPath != null) File(photo.localThumbnailPath!).delete().catchError((_) {});
+      try {
+        if (photo.localHighResPath != null) {
+          final file = File(photo.localHighResPath!);
+          if (await file.exists()) await file.delete();
+        }
+        if (photo.localThumbnailPath != null) {
+          final file = File(photo.localThumbnailPath!);
+          if (await file.exists()) await file.delete();
+        }
+      } catch (e) {
+        debugPrint('Fout bij verwijderen bestanden: $e');
+      }
 
       if (mounted) {
         Navigator.pop(context);

@@ -5,15 +5,22 @@ import 'package:k_photo/core/network/auth_repository.dart';
 import 'package:k_photo/core/network/kdrive_api_service.dart';
 import 'package:k_photo/core/services/ai_tagging_service.dart';
 import 'package:k_photo/presentation/blocs/gallery_bloc.dart';
-import 'package:k_photo/presentation/screens/gallery_screen.dart';
-import 'package:k_photo/presentation/screens/login_screen.dart';
 import 'package:k_photo/core/network/sync_engine.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 
+import 'package:k_photo/presentation/screens/firebase_login_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   await initializeDateFormatting('nl_NL', null);
 
   final GoogleMapsFlutterPlatform mapsImplementation = GoogleMapsFlutterPlatform.instance;
@@ -45,10 +52,6 @@ void main() async {
     syncEngine: syncEngine,
     apiService: apiService,
     authRepository: authRepository,
-    initialScreen: loggedIn ? const GalleryScreen() : LoginScreen(
-      apiService: apiService,
-      authRepository: authRepository,
-    ),
   ));
 }
 
@@ -57,7 +60,6 @@ class MyApp extends StatelessWidget {
   final SyncEngine syncEngine;
   final KDriveApiService apiService;
   final AuthRepository authRepository;
-  final Widget initialScreen;
 
   const MyApp({
     super.key, 
@@ -65,7 +67,6 @@ class MyApp extends StatelessWidget {
     required this.syncEngine,
     required this.apiService,
     required this.authRepository,
-    required this.initialScreen,
   });
 
   @override
@@ -85,7 +86,7 @@ class MyApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
           useMaterial3: true,
         ),
-        home: initialScreen,
+        home: const FirebaseLoginScreen(),
       ),
     );
   }

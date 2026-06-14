@@ -87,9 +87,10 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const Text(
+          child: AutofillGroup(
+            child: Column(
+              children: [
+                const Text(
                 'Enter your Infomaniak API Token and Drive ID to get started.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey),
@@ -100,7 +101,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 decoration: const InputDecoration(
                   labelText: 'API Token',
                   helperText: 'Create a token with kDrive scope in Manager',
+                  prefixIcon: Icon(Icons.vpn_key_outlined),
                 ),
+                autofillHints: const [AutofillHints.password],
+                obscureText: true,
               ),
               const SizedBox(height: 16),
               TextField(
@@ -108,6 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Drive ID',
                   helperText: 'Found in the kDrive URL (e.g. 123456)',
+                  prefixIcon: Icon(Icons.storage_outlined),
                 ),
                 keyboardType: TextInputType.number,
               ),
@@ -117,6 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Root Folder ID',
                   helperText: 'ID of the folder you want to sync (e.g. 3377)',
+                  prefixIcon: Icon(Icons.folder_outlined),
                 ),
                 keyboardType: TextInputType.number,
               ),
@@ -130,7 +136,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       child: const Text('Connect to kDrive'),
                     ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

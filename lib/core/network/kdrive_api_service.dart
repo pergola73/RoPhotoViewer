@@ -18,14 +18,11 @@ class KDriveApiService {
     _dio.options.headers['Authorization'] = 'Bearer $_token';
     
     try {
-      final response = await _dio.get('/2/drive/$_driveId');
-      debugPrint('kDrive API: Connected to drive $_driveId');
-      debugPrint('kDrive API: Drive info: ${response.data}');
+      debugPrint('kDrive API: Verbinding maken met drive $_driveId...');
+      await _dio.get('/2/drive/$_driveId').timeout(const Duration(seconds: 10));
+      debugPrint('kDrive API: Succesvol verbonden');
     } catch (e) {
-      if (e is DioException && e.type == DioExceptionType.connectionError) {
-        debugPrint('kDrive API: No Internet or DNS failed (api.infomaniak.com)');
-      }
-      debugPrint('kDrive API: Initialization failed');
+      debugPrint('kDrive API: Initialisatie mislukt: $e');
       rethrow;
     }
   }

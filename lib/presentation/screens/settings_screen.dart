@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:k_photo/core/network/auth_repository.dart';
+import 'package:k_photo/presentation/blocs/gallery_bloc.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:io';
 
 import 'package:k_photo/presentation/screens/folder_browser_screen.dart';
+import 'package:k_photo/presentation/screens/firebase_login_screen.dart';
+import 'package:k_photo/core/services/ai_tagging_service.dart';
+import 'package:k_photo/core/services/biometric_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -20,11 +26,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _urlController = TextEditingController();
   List<String> _folderIds = [];
   bool _isLoading = true;
+  String _version = '';
+  String _buildNumber = '';
+  bool _useBiometrics = false;
+  bool _isBiometricsAvailable = false;
 
   @override
   void initState() {
     super.initState();
     _loadCredentials();
+    _loadPackageInfo();
+    _checkBiometricsSupport();
+  }
+
+  Future<void> _checkBiometricsSupport() async {
+    final bioService = BiometricService();
+    final isAvailable = await bioService.canCheckBiometrics();
+    final enabled = await _auth.isBiometricsEnabled();
+    if (mounted) {
+      setState(() {
+        _isBiometricsAvailable = isAvailable;
+        _useBiometrics = enabled;
+      });
+    }
+  }
+
+  Future<void> _loadPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    setState(() {
+      _version = info.version;
+      _buildNumber = info.buildNumber;
+    });
   }
 
   Future<void> _loadCredentials() async {
@@ -226,6 +258,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     tileColor: Colors.orange.withOpacity(0.05),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
+                  const SizedBox(height: 24),
+                  const Text('Beveiliging', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  if (_isBiometricsAvailable)
+                    SwitchListTile(
+                      secondary: const Icon(Icons.fingerprint),
+                      title: const Text('Biometrisch inloggen'),
+                      subtitle: const Text('Gebruik FaceID of vingerafdruk'),
+                      value: _useBiometrics,
+                      onChanged: (bool value) async {
+                        await _auth.setBiometricsEnabled(value);
+                        setState(() => _useBiometrics = value);
+                      },
+                    )
+                  else
+                    const ListTile(
+                      leading: Icon(Icons.fingerprint, color: Colors.grey),
+                      title: Text('Biometrie niet beschikbaar', style: TextStyle(color: Colors.grey)),
+                      subtitle: Text('Zorg dat je FaceID of een vingerafdruk hebt ingesteld op je toestel.'),
+                    ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    leading: const Icon(Icons.auto_awesome),
+                    title: const Text('AI Tags opnieuw scannen'),
+                    subtitle: const Text('Werk je zoekindex bij met de nieuwste termen'),
+                    onTap: () async {
+                      if (!mounted) return;
+                      // Haal de database referentie direct op via de bloc voordat we de async gap ingaan
+                      final db = BlocProvider.of<GalleryBloc>(context).db;
+                      
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('AI re-scan gestart op de achtergrond...')));
+                      
+                      final aiService = AITaggingService(db);
+                      await aiService.processPendingPhotos(forceAll: true);
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('AI re-scan voltooid!')));
+                      }
+                    },
+                  ),
                   const SizedBox(height: 32),
                   const Text('App Delen', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
@@ -238,12 +310,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   const SizedBox(height: 32),
+                  if (_version.isNotEmpty)
+                    Center(
+                      child: Text(
+                        'Versie $_version ($_buildNumber)',
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _save,
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size.fromHeight(50),
                     ),
                     child: const Text('Instellingen Opslaan'),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton.icon(
+                    onPressed: () async {
+                      await _auth.logout();
+                      if (mounted) {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (context) => const FirebaseLoginScreen()),
+                          (route) => false,
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.logout, color: Colors.red),
+                    label: const Text('Uitloggen', style: TextStyle(color: Colors.red)),
                   ),
                 ],
               ),

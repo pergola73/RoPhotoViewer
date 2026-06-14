@@ -126,12 +126,13 @@ class _GalleryScreenState extends State<GalleryScreen> {
             child: Scrollbar(
               controller: _scrollController,
               interactive: true,
-              thickness: 8,
-              radius: const Radius.circular(4),
+              thickness: 12.0, // Dikker gemaakt voor makkelijker vastpakken
+              radius: const Radius.circular(6),
+              thumbVisibility: true, // Altijd zichtbaar tijdens scrollen
               child: CustomScrollView(
                 controller: _scrollController,
                 slivers: [
-                  if (state.status == GalleryStatus.loading && state.photos.isEmpty)
+                  if ((state.status == GalleryStatus.loading || state.status == GalleryStatus.syncing) && state.photos.isEmpty)
                     const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
                   
                   if (state.photos.isEmpty && state.status != GalleryStatus.loading && state.status != GalleryStatus.syncing)

@@ -76,7 +76,7 @@ class SyncEngine {
                   final localFile = existing.localHighResPath ?? existing.localThumbnailPath;
                   if (localFile != null && File(localFile).existsSync()) {
                     // Start meteen op de achtergrond zonder de sync-loop te blokkeren
-                    unawaited(_updateMetadataFromFile(existing.id, localFile));
+                    unawaited(updateMetadataFromFile(existing.id, localFile));
                   }
                 }
 
@@ -161,6 +161,10 @@ class SyncEngine {
 
             if (photosToDownloadInBatch.isNotEmpty) {
               await _downloadThumbnails(photosToDownloadInBatch, thumbDir);
+              
+              // DIRECT AI tagging starten voor de zojuist binnengehaalde thumbnails
+              final aiService = AITaggingService(_db);
+              unawaited(aiService.processPendingPhotos());
             }
 
             onProgress?.call(totalProcessed);
@@ -185,34 +189,48 @@ class SyncEngine {
   }
 
   DateTime _extractDate(Map<String, dynamic> item) {
+    final name = item['name']?.toString() ?? '';
     final dynamic exif = item['exif'];
-    final dynamic exifDate = exif?['date_taken'] ?? exif?['date_time_original'] ?? exif?['date_time'];
+    
+    // 1. Probeer kDrive metadata (meest betrouwbaar indien aanwezig)
+    final dynamic kDriveDate = exif?['date_taken'] ?? exif?['date_time_original'] ?? exif?['date_time'];
+    if (kDriveDate != null) {
+      DateTime? parsed = _parseAnyDate(kDriveDate);
+      if (parsed != null) return parsed;
+    }
+
+    // 2. Probeer datum uit bestandsnaam te halen (bijv. IMG_20230521_...)
+    final RegExp dateRegex = RegExp(r'(\d{4})(\d{2})(\d{2})');
+    final match = dateRegex.firstMatch(name);
+    if (match != null) {
+      try {
+        final year = int.parse(match.group(1)!);
+        final month = int.parse(match.group(2)!);
+        final day = int.parse(match.group(3)!);
+        if (year > 1990 && year < 2100 && month > 0 && month <= 12 && day > 0 && day <= 31) {
+          return DateTime(year, month, day);
+        }
+      } catch (_) {}
+    }
+
+    // 3. Fallback naar systeemdatums
     final dynamic lastMod = item['last_modified'] ?? item['mtime'];
     final dynamic createdAt = item['created_at'];
 
-    List<DateTime> dates = [];
+    DateTime? bestFallback = _parseAnyDate(lastMod) ?? _parseAnyDate(createdAt);
+    return bestFallback ?? DateTime.now();
+  }
 
-    void addDate(dynamic raw) {
-      if (raw == null) return;
-      DateTime? parsed;
-      if (raw is num) {
-        int ts = raw.toInt();
-        if (ts > 32503680000) ts = ts ~/ 1000;
-        parsed = DateTime.fromMillisecondsSinceEpoch(ts * 1000);
-      } else if (raw is String) {
-        parsed = DateTime.tryParse(raw);
-      }
-      if (parsed != null) dates.add(parsed);
+  DateTime? _parseAnyDate(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is num) {
+      int ts = raw.toInt();
+      if (ts > 32503680000) ts = ts ~/ 1000;
+      return DateTime.fromMillisecondsSinceEpoch(ts * 1000);
+    } else if (raw is String) {
+      return DateTime.tryParse(raw);
     }
-
-    addDate(exifDate);
-    addDate(lastMod);
-    addDate(createdAt);
-
-    if (dates.isEmpty) return DateTime.now();
-
-    dates.sort();
-    return dates.first;
+    return null;
   }
 
   double? _toDouble(dynamic val) {
@@ -242,7 +260,7 @@ class SyncEngine {
             
             // DIRECT EXIF UITLEZEN op de achtergrond
             // We wachten hier niet op (unawaited), zodat de volgende download direct kan starten
-            unawaited(_updateMetadataFromFile(photo.id, localThumbPath));
+            await updateMetadataFromFile(photo.id, localThumbPath);
           } else {
             if (file.existsSync()) file.deleteSync();
           }
@@ -254,7 +272,7 @@ class SyncEngine {
     }
   }
 
-  Future<void> _updateMetadataFromFile(int photoId, String filePath) async {
+  Future<void> updateMetadataFromFile(int photoId, String filePath) async {
     try {
       final file = File(filePath);
       if (!await file.exists()) return;
@@ -294,24 +312,30 @@ class SyncEngine {
       // Adres bepalen op basis van GPS
       String? locationName;
       if (lat != null && lon != null) {
-        try {
-          List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon);
-          if (placemarks.isNotEmpty) {
-            final p = placemarks.first;
-            final city = p.locality ?? p.subLocality ?? p.administrativeArea;
-            final country = p.country;
-            
-            if (city != null) {
-              locationName = city;
-              if (country != null) {
-                locationName = '$city, $country';
+        // Check of we al een locatie hebben om dubbele (trage) geocoding te voorkomen
+        final existing = await (_db.select(_db.photos)..where((t) => t.id.equals(photoId))).getSingleOrNull();
+        if (existing?.locationName != null && existing!.locationName!.isNotEmpty) {
+          locationName = existing.locationName;
+        } else {
+          try {
+            List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon);
+            if (placemarks.isNotEmpty) {
+              final p = placemarks.first;
+              final city = p.locality ?? p.subLocality ?? p.administrativeArea;
+              final country = p.country;
+              
+              if (city != null) {
+                locationName = city;
+                if (country != null) {
+                  locationName = '$city, $country';
+                }
+              } else if (country != null) {
+                locationName = country;
               }
-            } else if (country != null) {
-              locationName = country;
             }
+          } catch (e) {
+            debugPrint('Sync: Geocoding mislukt voor foto $photoId: $e');
           }
-        } catch (e) {
-          debugPrint('Sync: Geocoding mislukt voor foto $photoId: $e');
         }
       }
 
@@ -351,12 +375,11 @@ class SyncEngine {
           focalLength: Value(focal != null ? '${focal}mm' : null),
           flash: Value(flash),
           lensModel: Value(lens),
-          dateTaken: exifDate != null ? Value(exifDate) : const Value.absent(),
-          latitude: lat != null ? Value(lat) : const Value.absent(),
-          longitude: lon != null ? Value(lon) : const Value.absent(),
           locationName: Value(locationName),
+          dateTaken: exifDate != null ? Value(exifDate) : const Value.absent(),
         ),
       );
+      debugPrint('Sync: Metadata bijgewerkt voor foto $photoId (Datum: ${exifDate ?? "geen EXIF"})');
     } catch (e) {
       debugPrint('Sync: Fout bij lokaal uitlezen EXIF voor foto $photoId: $e');
     }
@@ -419,7 +442,7 @@ class SyncEngine {
         if (File(localPath).existsSync()) {
           await (_db.update(_db.photos)..where((t) => t.id.equals(photo.id)))
               .write(PhotosCompanion(localHighResPath: Value(localPath)));
-          await _updateMetadataFromFile(photo.id, localPath);
+          await updateMetadataFromFile(photo.id, localPath);
         }
         await Future.delayed(const Duration(seconds: 2));
       } catch (e) {

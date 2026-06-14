@@ -148,23 +148,38 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     final engine = syncEngine;
     if (engine == null) return;
     
-    final folderIds = await AuthRepository().getFolderIds();
-    if (folderIds.isEmpty) return;
+    // Altijd een verse lijst met folder ID's ophalen
+    final authRepo = AuthRepository();
+    final folderIds = await authRepo.getFolderIds();
+    
+    if (folderIds.isEmpty) {
+      debugPrint('GalleryBloc: Geen mappen gevonden om te synchroniseren. Controleer instellingen.');
+      emit(state.copyWith(status: GalleryStatus.success));
+      return;
+    }
 
     emit(state.copyWith(status: GalleryStatus.syncing, processedCount: 0));
     
-    int total = 0;
-    for (var folderId in folderIds) {
-      await engine.sync(folderId, onProgress: (count) {
-        total += count;
-        if (!emit.isDone) {
-          add(SyncProgressUpdated(total));
-        }
-      });
+    try {
+      int total = 0;
+      for (var folderId in folderIds) {
+        debugPrint('GalleryBloc: Starten sync voor map ID: $folderId');
+        await engine.sync(folderId, onProgress: (count) {
+          total += count;
+          if (!emit.isDone) {
+            add(SyncProgressUpdated(total));
+          }
+        });
+      }
+      emit(state.copyWith(status: GalleryStatus.syncFinished));
+    } catch (e) {
+      debugPrint('GalleryBloc: Sync fout: $e');
+      emit(state.copyWith(status: GalleryStatus.failure));
+    } finally {
+      if (!emit.isDone) {
+        emit(state.copyWith(status: GalleryStatus.success));
+      }
     }
-    
-    emit(state.copyWith(status: GalleryStatus.syncFinished));
-    emit(state.copyWith(status: GalleryStatus.success));
   }
 
   Future<void> _onDeleteSelectedPhotos(DeleteSelectedPhotos event, Emitter<GalleryState> emit) async {
