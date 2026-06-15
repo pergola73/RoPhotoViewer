@@ -150,20 +150,49 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     
     emit(state.copyWith(status: GalleryStatus.syncing, processedCount: 0));
 
-    // Belangrijk bij schone installatie: Wacht heel even op Firestore
     final authRepo = AuthRepository();
+    
+    // 1. Zorg dat de API geinitialiseerd is (belangrijk bij schone installatie)
+    if (!engine.apiService.isInitialized) {
+      final creds = await authRepo.getCredentials();
+      if (creds['token'] != null && creds['driveId'] != null) {
+        try {
+          debugPrint('GalleryBloc: API initialiseren met gevonden credentials...');
+          await engine.apiService.initialize(creds['token']!, creds['driveId']!);
+        } catch (e) {
+          debugPrint('GalleryBloc: API initialisatie mislukt: $e');
+        }
+      }
+    }
+
+    // 2. Map ID's ophalen
     List<String> folderIds = await authRepo.getFolderIds();
     
     if (folderIds.isEmpty) {
       debugPrint('GalleryBloc: Geen mappen lokaal gevonden, check Firestore...');
-      // Geef Firestore 3 seconden de tijd om de data te synchroniseren
+      // Geef Firestore even de tijd om de data te synchroniseren (bijv. na verse login)
       await Future.delayed(const Duration(seconds: 3));
       folderIds = await authRepo.getFolderIds();
+      
+      // Als we na de wachtperiode nog steeds geen mappen hebben, maar wel token/driveId, 
+      // probeer dan nogmaals de API te initialiseren voor de zekerheid
+      if (folderIds.isNotEmpty && !engine.apiService.isInitialized) {
+        final creds = await authRepo.getCredentials();
+        if (creds['token'] != null && creds['driveId'] != null) {
+          await engine.apiService.initialize(creds['token']!, creds['driveId']!);
+        }
+      }
     }
     
     if (folderIds.isEmpty) {
       debugPrint('GalleryBloc: Nog steeds geen mappen gevonden. Controleer instellingen.');
       emit(state.copyWith(status: GalleryStatus.success));
+      return;
+    }
+    
+    if (!engine.apiService.isInitialized) {
+      debugPrint('GalleryBloc: API is niet geinitialiseerd. Sync afgebroken.');
+      emit(state.copyWith(status: GalleryStatus.failure));
       return;
     }
     

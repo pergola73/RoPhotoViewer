@@ -285,12 +285,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     subtitle: const Text('Werk je zoekindex bij met de nieuwste termen'),
                     onTap: () async {
                       if (!mounted) return;
-                      // Haal de database referentie direct op via de bloc voordat we de async gap ingaan
-                      final db = BlocProvider.of<GalleryBloc>(context).db;
+                      final galleryBloc = BlocProvider.of<GalleryBloc>(context);
+                      final db = galleryBloc.db;
+                      // Haal API direct uit de syncEngine van de Bloc
+                      final api = galleryBloc.syncEngine?.apiService;
                       
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('AI re-scan gestart op de achtergrond...')));
                       
-                      final aiService = AITaggingService(db);
+                      final aiService = AITaggingService(db, api);
                       await aiService.processPendingPhotos(forceAll: true);
 
                       if (mounted) {

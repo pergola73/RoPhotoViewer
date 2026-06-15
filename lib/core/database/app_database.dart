@@ -128,9 +128,16 @@ class AppDatabase extends _$AppDatabase {
     return id;
   }
 
-  Future updatePhotoTags(int id, List<String> tags) {
+  Future updatePhotoTags(int id, List<String> tags) async {
+    // Haal eerst bestaande tags op om dubbelen te voorkomen en info te behouden
+    final photo = await (select(photos)..where((t) => t.id.equals(id))).getSingleOrNull();
+    final Set<String> allTags = photo != null ? Set<String>.from(photo.aiTags) : {};
+    
+    // Voeg nieuwe tags toe (geschoond)
+    allTags.addAll(tags.map((t) => t.trim().toLowerCase()).where((t) => t.length > 1));
+    
     return (update(photos)..where((t) => t.id.equals(id))).write(
-      PhotosCompanion(aiTags: Value(tags)),
+      PhotosCompanion(aiTags: Value(allTags.toList())),
     );
   }
 

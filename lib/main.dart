@@ -32,7 +32,7 @@ void main() async {
   final apiService = KDriveApiService();
   final authRepository = AuthRepository();
   final syncEngine = SyncEngine(apiService, database);
-  final aiTaggingService = AITaggingService(database);
+  final aiTaggingService = AITaggingService(database, apiService);
   
   final loggedIn = await authRepository.isLoggedIn();
   if (loggedIn) {
@@ -43,9 +43,6 @@ void main() async {
       debugPrint('API Auto-init failed: $e');
     }
   }
-
-  // Start background tagging
-  aiTaggingService.processPendingPhotos();
 
   runApp(MyApp(
     database: database,

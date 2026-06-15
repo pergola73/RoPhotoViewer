@@ -4,6 +4,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 class KDriveApiService {
+  // Singleton pattern om overal dezelfde verbinding te garanderen
+  static final KDriveApiService _instance = KDriveApiService._internal();
+  factory KDriveApiService() => _instance;
+  KDriveApiService._internal();
+
   final Dio _dio = Dio(BaseOptions(
     baseUrl: 'https://api.infomaniak.com',
     connectTimeout: const Duration(seconds: 15),
@@ -129,13 +134,13 @@ class KDriveApiService {
     }
   }
 
-  Future<void> downloadThumbnail(String fileId, String localPath) async {
+  Future<void> downloadThumbnail(String fileId, String localPath, {int size = 400}) async {
     int retryCount = 0;
     while (retryCount < 3) {
       try {
         final response = await _dio.get(
           '/2/drive/$_driveId/files/$fileId/thumbnail',
-          queryParameters: {'size': 400},
+          queryParameters: {'size': size},
           options: Options(
             responseType: ResponseType.bytes,
             followRedirects: true,
@@ -180,15 +185,94 @@ class KDriveApiService {
     }
   }
 
-  Future<Map<String, dynamic>?> getFileExif(String fileId) async {
+  /// Downloadt een klein deel van het originele bestand (voor EXIF extractie)
+  Future<List<int>?> downloadPartialFile(String fileId, {int bytes = 1048576}) async {
     try {
-      final response = await _dio.get('/2/drive/$_driveId/files/$fileId');
+      // Gebruik de bestaande _dio client met autorisatie en volg omleidingen
+      final response = await _dio.get(
+        '/2/drive/$_driveId/files/$fileId/download',
+        options: Options(
+          headers: {'Range': 'bytes=0-${bytes - 1}'},
+          responseType: ResponseType.bytes,
+          followRedirects: true,
+        ),
+      );
+
       final data = response.data;
-      if (data is Map && data['data'] != null) {
-        return data['data']['exif'] as Map<String, dynamic>?;
+      if (data is List<int>) {
+        // Dubbele check of kDrive ons geen JSON URL teruggaf ipv bytes
+        if (data.length < 2000) {
+          try {
+            final content = utf8.decode(data);
+            final decoded = json.decode(content);
+            if (decoded is Map && decoded['data'] != null && decoded['data']['url'] != null) {
+              final url = decoded['data']['url'].toString();
+              final partialResponse = await Dio().get(
+                url,
+                options: Options(
+                  headers: {'Range': 'bytes=0-${bytes - 1}'},
+                  responseType: ResponseType.bytes,
+                ),
+              );
+              return partialResponse.data as List<int>?;
+            }
+          } catch (_) {}
+        }
+        return data;
       }
+      return null;
     } catch (e) {
-      debugPrint('kDrive API: Fout bij ophalen EXIF voor $fileId: $e');
+      return null;
+    }
+  }
+
+  /// Opent een stream naar het bestand voor slimme EXIF extractie
+  Future<ResponseBody?> getDownloadStream(String fileId) async {
+    try {
+      // 1. Haal download URL op
+      final response = await _dio.get(
+        '/2/drive/$_driveId/files/$fileId/download',
+        options: Options(responseType: ResponseType.json),
+      );
+
+      String? downloadUrl;
+      if (response.data is Map && response.data['data'] != null) {
+        downloadUrl = response.data['data']['url']?.toString();
+      }
+
+      if (downloadUrl == null) return null;
+
+      // 2. Open de stream op de download URL
+      final streamResponse = await Dio().get<ResponseBody>(
+        downloadUrl,
+        options: Options(responseType: ResponseType.stream),
+      );
+
+      return streamResponse.data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getFileExif(String fileId) async {
+    int retryCount = 0;
+    while (retryCount < 3) {
+      try {
+        // Gebruik v2 voor metadata omdat deze vaak completer is qua EXIF
+        final response = await _dio.get('/2/drive/$_driveId/files/$fileId');
+        
+        final data = response.data;
+        if (data is Map && data['data'] != null) {
+          final fileData = data['data'];
+          if (fileData['exif'] != null) {
+            return fileData['exif'] as Map<String, dynamic>;
+          }
+          return fileData as Map<String, dynamic>;
+        }
+      } catch (e) {
+        retryCount++;
+        await Future.delayed(Duration(seconds: retryCount));
+      }
     }
     return null;
   }

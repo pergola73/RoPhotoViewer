@@ -467,6 +467,27 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                   trailing: const Icon(Icons.open_in_new, size: 18),
                   onTap: () => _openInMaps(photo.latitude, photo.longitude),
                 ),
+              if (photo.aiTags.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Tags', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: photo.aiTags.map((tag) => Chip(
+                          label: Text(tag, style: const TextStyle(fontSize: 12)),
+                          padding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                          backgroundColor: Colors.blue.withOpacity(0.1),
+                        )).toList(),
+                      ),
+                    ],
+                  ),
+                ),
               if (photo.latitude != null && photo.longitude != null)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
