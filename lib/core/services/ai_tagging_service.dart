@@ -5,51 +5,65 @@ import 'package:k_photo/core/database/app_database.dart';
 
 class AITaggingService {
   final AppDatabase _db;
-  late ImageLabeler _labeler;
+  static ImageLabeler? _labeler;
 
   AITaggingService(this._db) {
-    _labeler = ImageLabeler(options: ImageLabelerOptions(confidenceThreshold: 0.7));
+    _labeler ??= ImageLabeler(options: ImageLabelerOptions(confidenceThreshold: 0.5));
   }
 
   Future<void> processPendingPhotos({bool forceAll = false}) async {
     final allPhotos = await _db.getAllPhotos();
     
-    // Bij forceAll doen we alles, anders alleen foto's zonder tags
     final untaggedPhotos = forceAll 
         ? allPhotos.where((p) => p.localThumbnailPath != null).toList()
         : allPhotos.where((p) => p.aiTags.isEmpty && p.localThumbnailPath != null).toList();
 
     if (untaggedPhotos.isEmpty) return;
     
-    debugPrint('AI Service: Starten met labelen van ${untaggedPhotos.length} foto\'s...');
+    debugPrint('AI Service: Verwerken van ${untaggedPhotos.length} thumbnails...');
 
     for (var photo in untaggedPhotos) {
-      if (photo.localThumbnailPath == null) continue;
-      final file = File(photo.localThumbnailPath!);
-      if (!file.existsSync()) continue;
-
-      try {
-        final inputImage = InputImage.fromFilePath(photo.localThumbnailPath!);
-        final List<ImageLabel> labels = await _labeler.processImage(inputImage);
-
-        if (labels.isNotEmpty) {
-          final Set<String> tags = {};
-          for (var label in labels) {
-            final name = label.label.toLowerCase();
-            tags.add(name);
-            
-            // Voeg Nederlandse termen en categorieën toe voor betere zoekbaarheid
-            if (_categoryMappings.containsKey(name)) {
-              tags.addAll(_categoryMappings[name]!);
-            }
-          }
-          
-          await _db.updatePhotoTags(photo.id, tags.toList());
-        }
-      } catch (e) {
-        // Log error
-      }
+      await _processSinglePhoto(photo);
     }
+  }
+
+  Future<void> processSinglePhoto(Photo photo) async {
+    if (photo.localThumbnailPath == null) return;
+    final file = File(photo.localThumbnailPath!);
+    if (!file.existsSync()) {
+      debugPrint('AI Service: Thumbnail niet gevonden voor ${photo.fileName}');
+      return;
+    }
+
+    try {
+      debugPrint('AI Service: Scannen van ${photo.fileName}...');
+      final inputImage = InputImage.fromFilePath(photo.localThumbnailPath!);
+      final List<ImageLabel> labels = await _labeler!.processImage(inputImage);
+
+      // Haal huidige tags op om te voorkomen dat we locatie-tags overschrijven
+      final existingPhoto = await (_db.select(_db.photos)..where((t) => t.id.equals(photo.id))).getSingleOrNull();
+      final Set<String> tags = existingPhoto != null ? Set<String>.from(existingPhoto.aiTags) : {};
+
+      if (labels.isNotEmpty) {
+        for (var label in labels) {
+          final name = label.label.toLowerCase();
+          tags.add(name);
+          if (_categoryMappings.containsKey(name)) {
+            tags.addAll(_categoryMappings[name]!);
+          }
+        }
+        await _db.updatePhotoTags(photo.id, tags.toList());
+        debugPrint('AI Service: ${tags.length} tags nu gekoppeld aan ${photo.fileName}');
+      } else {
+        debugPrint('AI Service: Geen labels gevonden voor ${photo.fileName}');
+      }
+    } catch (e) {
+      debugPrint('AI Service: Fout bij scannen van ${photo.fileName}: $e');
+    }
+  }
+
+  Future<void> _processSinglePhoto(Photo photo) async {
+    return processSinglePhoto(photo);
   }
 
   static const Map<String, List<String>> _categoryMappings = {
@@ -77,6 +91,31 @@ class AITaggingService {
     'house': ['huis', 'gebouw'],
     'skyscraper': ['wolkenkrabber', 'stad'],
     
+    // Mensen & Portretten
+    'person': ['persoon', 'mensen'],
+    'face': ['gezicht', 'portret'],
+    'smile': ['lach', 'mensen'],
+    'crowd': ['mensen', 'groep'],
+    'baby': ['baby', 'kind'],
+    'child': ['kind'],
+    
+    // Interieur & Voorwerpen
+    'furniture': ['meubels', 'interieur'],
+    'table': ['tafel', 'interieur'],
+    'chair': ['stoel', 'interieur'],
+    'bed': ['bed', 'interieur'],
+    'kitchen': ['keuken', 'binnen'],
+    'computer': ['computer', 'technologie'],
+    'phone': ['telefoon', 'technologie'],
+    'book': ['boek', 'lezen'],
+    'clock': ['klok', 'tijd'],
+    
+    // Kleding
+    'clothing': ['kleding'],
+    'hat': ['hoed', 'kleding'],
+    'shoes': ['schoenen', 'kleding'],
+    'dress': ['jurk', 'kleding'],
+    
     // Wintersporten & Activiteiten
     'skiing': ['skiën', 'wintersport', 'sneeuw', 'sport'],
     'snowboarding': ['snowboarden', 'wintersport', 'sneeuw', 'sport'],
@@ -102,9 +141,20 @@ class AITaggingService {
     'tent': ['tent', 'kamperen', 'buiten'],
     'beach': ['strand', 'zee', 'zomer', 'vakantie'],
     'sun': ['zon', 'zomer'],
+    
+    // Overige
+    'bridge': ['brug', 'architectuur'],
+    'street': ['straat', 'stad'],
+    'park': ['park', 'natuur'],
+    'instrument': ['instrument', 'muziek'],
+    'guitar': ['gitaar', 'muziek'],
+    'piano': ['piano', 'muziek'],
+    'painting': ['schilderij', 'kunst'],
+    'statue': ['beeld', 'kunst'],
   };
 
   void dispose() {
-    _labeler.close();
+    _labeler?.close();
+    _labeler = null;
   }
 }

@@ -148,17 +148,24 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     final engine = syncEngine;
     if (engine == null) return;
     
-    // Altijd een verse lijst met folder ID's ophalen
+    emit(state.copyWith(status: GalleryStatus.syncing, processedCount: 0));
+
+    // Belangrijk bij schone installatie: Wacht heel even op Firestore
     final authRepo = AuthRepository();
-    final folderIds = await authRepo.getFolderIds();
+    List<String> folderIds = await authRepo.getFolderIds();
     
     if (folderIds.isEmpty) {
-      debugPrint('GalleryBloc: Geen mappen gevonden om te synchroniseren. Controleer instellingen.');
+      debugPrint('GalleryBloc: Geen mappen lokaal gevonden, check Firestore...');
+      // Geef Firestore 3 seconden de tijd om de data te synchroniseren
+      await Future.delayed(const Duration(seconds: 3));
+      folderIds = await authRepo.getFolderIds();
+    }
+    
+    if (folderIds.isEmpty) {
+      debugPrint('GalleryBloc: Nog steeds geen mappen gevonden. Controleer instellingen.');
       emit(state.copyWith(status: GalleryStatus.success));
       return;
     }
-
-    emit(state.copyWith(status: GalleryStatus.syncing, processedCount: 0));
     
     try {
       int total = 0;

@@ -17,6 +17,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:k_photo/presentation/blocs/gallery_bloc.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
 class PhotoViewerScreen extends StatefulWidget {
   final List<Photo> photos;
   final int initialIndex;
@@ -457,54 +459,49 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                 title: const Text('Datum genomen'),
                 subtitle: Text(DateFormat('d MMMM yyyy HH:mm', 'nl_NL').format(photo.dateTaken)),
               ),
-              if (photo.latitude != null && photo.longitude != null)
-                ListTile(
-                  leading: const Icon(Icons.location_on),
-                  title: const Text('Coördinaten'),
-                  subtitle: Text('${photo.latitude}, ${photo.longitude}'),
-                ),
               if (photo.locationName != null)
                 ListTile(
-                  leading: const Icon(Icons.map),
+                  leading: const Icon(Icons.map_outlined),
                   title: const Text('Locatie'),
                   subtitle: Text(photo.locationName!),
+                  trailing: const Icon(Icons.open_in_new, size: 18),
+                  onTap: () => _openInMaps(photo.latitude, photo.longitude),
                 ),
               if (photo.latitude != null && photo.longitude != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: SizedBox(
-                      height: 180,
-                      width: double.infinity,
-                      child: Builder(
-                        builder: (context) {
-                          try {
-                            return GoogleMap(
-                              initialCameraPosition: CameraPosition(
-                                target: LatLng(photo.latitude!, photo.longitude!),
-                                zoom: 12,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: Column(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: SizedBox(
+                          height: 180,
+                          width: double.infinity,
+                          child: GoogleMap(
+                            initialCameraPosition: CameraPosition(
+                              target: LatLng(photo.latitude!, photo.longitude!),
+                              zoom: 12,
+                            ),
+                            markers: {
+                              Marker(
+                                markerId: MarkerId(photo.id.toString()),
+                                position: LatLng(photo.latitude!, photo.longitude!),
                               ),
-                              markers: {
-                                Marker(
-                                  markerId: MarkerId(photo.id.toString()),
-                                  position: LatLng(photo.latitude!, photo.longitude!),
-                                ),
-                              },
-                              liteModeEnabled: true,
-                              myLocationButtonEnabled: false,
-                              zoomControlsEnabled: false,
-                              mapToolbarEnabled: false,
-                            );
-                          } catch (e) {
-                            return Container(
-                              color: Colors.grey[200],
-                              child: const Center(child: Text('Kaart niet beschikbaar')),
-                            );
-                          }
-                        }
+                            },
+                            liteModeEnabled: true, // Belangrijk voor snelheid
+                            myLocationButtonEnabled: false,
+                            zoomControlsEnabled: false,
+                            mapToolbarEnabled: false,
+                            onTap: (_) => _openInMaps(photo.latitude, photo.longitude),
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${photo.latitude}, ${photo.longitude}',
+                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      ),
+                    ],
                   ),
                 ),
               if (photo.cameraModel != null)
@@ -541,6 +538,14 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _openInMaps(double? lat, double? lon) async {
+    if (lat == null || lon == null) return;
+    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lon');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
   }
 }
 

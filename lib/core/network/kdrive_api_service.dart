@@ -56,10 +56,6 @@ class KDriveApiService {
         if (data is Map) {
           final List<dynamic> currentBatch = (data['data'] ?? []) as List<dynamic>;
 
-          if (currentBatch.isNotEmpty) {
-            debugPrint('kDrive API v3 Sample Item: ${currentBatch.first}');
-          }
-
           if (currentBatch.isEmpty) {
             debugPrint('kDrive API v3: Map $directoryId is leeg of einde bereikt.');
             hasMore = false;

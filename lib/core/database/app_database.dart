@@ -103,10 +103,19 @@ class AppDatabase extends _$AppDatabase {
   Stream<List<Photo>> watchAllPhotos() => (select(photos)..orderBy([(t) => OrderingTerm(expression: t.dateTaken, mode: OrderingMode.desc)])).watch();
   
   Future<List<Photo>> searchPhotos(String query) {
+    final lowerQuery = query.toLowerCase();
+    debugPrint('Database: Zoeken naar "$lowerQuery"...');
     return (select(photos)
-      ..where((t) => t.fileName.contains(query) | t.aiTags.contains(query) | t.locationName.contains(query))
+      ..where((t) => 
+        t.fileName.lower().contains(lowerQuery) | 
+        t.aiTags.lower().contains(lowerQuery) | 
+        t.locationName.lower().contains(lowerQuery)
+      )
       ..orderBy([(t) => OrderingTerm(expression: t.dateTaken, mode: OrderingMode.desc)]))
-      .get();
+      .get().then((results) {
+        debugPrint('Database: ${results.length} resultaten gevonden voor "$lowerQuery"');
+        return results;
+      });
   }
 
   Future<Photo?> getPhotoByKdriveId(String id) {

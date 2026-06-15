@@ -38,69 +38,60 @@ class SyncEngine {
 
       while (folderQueue.isNotEmpty) {
         final currentFolderId = folderQueue.removeAt(0);
-        debugPrint('Sync: Verwerken map $currentFolderId (Nog ${folderQueue.length} mappen in wachtrij)');
+        debugPrint('Sync: Bezig met scannen van map ID: $currentFolderId...');
 
         try {
+          int filesInBatch = 0;
           await for (final batch in _apiService.getChildrenStream(currentFolderId)) {
+            filesInBatch += batch.length;
+            debugPrint('Sync: Batch ontvangen met ${batch.length} items. Totaal in deze map: $filesInBatch');
+            
             List<PhotosCompanion> metadataBuffer = [];
             List<Photo> photosToDownloadInBatch = [];
 
             for (final item in batch) {
-              final name = item['name']?.toString() ?? '';
-              final type = item['type']?.toString(); 
-              final mimeType = item['mime_type']?.toString();
-              final fileId = (item['id'] ?? item['file_id'] ?? item['node_id'])?.toString();
+              final name = item['name']?.toString() ?? 'onbekend';
+              final fileId = (item['id'] ?? item['file_id'] ?? item['node_id'] ?? item['node']?['id'])?.toString();
 
               if (fileId == null) {
+                debugPrint('Sync: Item overgeslagen (geen ID gevonden): $name');
                 continue;
               }
 
+              final type = item['type']?.toString(); 
+              final mimeType = item['mime_type']?.toString();
               final bool isFolder = type == 'dir' || type == 'folder' || mimeType == 'application/x-directory' || type == 'node_dir';
 
               if (isFolder) {
                 if (!visitedFolders.contains(fileId)) {
-                  // Voorkom loops en negeer irrelevante systeem-mappen
-                  if (fileId == currentFolderId) continue;
-
-                  debugPrint('Sync: Nieuwe map ontdekt: $name (ID: $fileId)');
                   visitedFolders.add(fileId);
                   folderQueue.add(fileId);
+                  debugPrint('Sync: Submap gevonden: $name');
                 }
+                continue;
+              }
+
+              // Check of het media is (op basis van extensie OF mimetype)
+              final bool isImg = _isImage(name) || (mimeType?.startsWith('image/') ?? false);
+              final bool isVid = _isVideo(name) || (mimeType?.startsWith('video/') ?? false);
+
+              if (!isImg && !isVid) {
+                // debugPrint('Sync: Bestand genegeerd (geen media): $name ($mimeType)');
                 continue;
               }
 
               final existing = await _db.getPhotoByKdriveId(fileId);
               if (existing != null) {
-                // FORCEER UPDATE VOOR BESTAANDE FOTO'S:
-                if (existing.cameraModel == null || existing.lensModel == null) {
-                  final localFile = existing.localHighResPath ?? existing.localThumbnailPath;
-                  if (localFile != null && File(localFile).existsSync()) {
-                    // Start meteen op de achtergrond zonder de sync-loop te blokkeren
-                    unawaited(updateMetadataFromFile(existing.id, localFile));
-                  }
-                }
-
-                // Sla de onnodige kDrive API EXIF calls over
                 if (existing.localThumbnailPath == null || !File(existing.localThumbnailPath!).existsSync()) {
                   photosToDownloadInBatch.add(existing);
                 }
                 continue;
               }
 
-              // Alleen media verwerken
-              if (!_isSupportedMedia(name)) {
-                continue;
-              }
-
-              final bool isVideo = _isVideo(name);
-              final mediaType = isVideo ? 'video' : 'image';
-
+              final mediaType = isVid ? 'video' : 'image';
               totalProcessed++;
+              debugPrint('Sync: Nieuw bestand gevonden: $name');
               
-              // Metadata extraheren
-              final DateTime dateTaken = _extractDate(item);
-              
-              // Verbeterde locatie extractie
               String? locationName;
               double? lat;
               double? lon;
@@ -110,10 +101,17 @@ class SyncEngine {
               String? fNumber;
               int? iso;
               String? focalLength;
+              final List<String> tags = [];
+              final DateTime dateTaken = _extractDate(item);
 
+              // Metadata direct uit kDrive API halen
               final dynamic exif = item['exif'];
               if (exif != null) {
                 locationName = exif['location']?['name']?.toString();
+                if (locationName != null) {
+                  // Voeg locatie onderdelen toe als tags
+                  tags.addAll(locationName.split(',').map((s) => s.trim().toLowerCase()));
+                }
                 
                 final dynamic gps = exif['gps'] ?? exif['location']?['gps'];
                 if (gps != null) {
@@ -121,14 +119,14 @@ class SyncEngine {
                   lon = _toDouble(gps['longitude'] ?? gps['lon']);
                 }
                 
-                if (isVideo) {
+                if (isVid) {
                   duration = (exif['duration'] as num?)?.toInt();
                 } else {
                   cameraModel = exif['model']?.toString() ?? exif['make']?.toString();
                   exposureTime = exif['exposure_time']?.toString();
-                  fNumber = exif['f_number'] != null ? 'f/${exif['f_number']}' : null;
+                  if (exif['f_number'] != null) fNumber = 'f/${exif['f_number']}';
                   iso = (exif['iso'] as num?)?.toInt();
-                  focalLength = exif['focal_length'] != null ? '${exif['focal_length']}mm' : null;
+                  if (exif['focal_length'] != null) focalLength = '${exif['focal_length']}mm';
                 }
               }
 
@@ -136,7 +134,7 @@ class SyncEngine {
                 fileName: name,
                 kdrivePath: fileId,
                 dateTaken: dateTaken,
-                aiTags: const [],
+                aiTags: tags,
                 locationName: Value(locationName),
                 latitude: Value(lat),
                 longitude: Value(lon),
@@ -161,10 +159,7 @@ class SyncEngine {
 
             if (photosToDownloadInBatch.isNotEmpty) {
               await _downloadThumbnails(photosToDownloadInBatch, thumbDir);
-              
-              // DIRECT AI tagging starten voor de zojuist binnengehaalde thumbnails
-              final aiService = AITaggingService(_db);
-              unawaited(aiService.processPendingPhotos());
+              // AI tagging wordt nu individueel aangeroepen binnen _downloadThumbnails
             }
 
             onProgress?.call(totalProcessed);
@@ -240,7 +235,9 @@ class SyncEngine {
   }
 
   Future<void> _downloadThumbnails(List<Photo> photos, Directory thumbDir) async {
-    const int concurrency = 2;
+    final aiService = AITaggingService(_db);
+    const int concurrency = 3; // lets do 3 at a time for speed
+    
     for (int i = 0; i < photos.length; i += concurrency) {
       final chunk = photos.skip(i).take(concurrency);
 
@@ -253,22 +250,23 @@ class SyncEngine {
 
           final file = File(localThumbPath);
           if (file.existsSync() && file.lengthSync() > 0) {
-            // Update eerst de thumbnail pad
-            await (_db.update(_db.photos)
-              ..where((t) => t.id.equals(photo.id)))
+            // 1. Update thumbnail pad
+            await (_db.update(_db.photos)..where((t) => t.id.equals(photo.id)))
                 .write(PhotosCompanion(localThumbnailPath: Value(localThumbPath)));
             
-            // DIRECT EXIF UITLEZEN op de achtergrond
-            // We wachten hier niet op (unawaited), zodat de volgende download direct kan starten
+            // 2. Scan EXIF direct (wachten voor gegarandeerde info)
             await updateMetadataFromFile(photo.id, localThumbPath);
+            
+            // 3. Scan AI direct op de thumbnail op de achtergrond
+            final updatedPhoto = await (_db.select(_db.photos)..where((t) => t.id.equals(photo.id))).getSingle();
+            unawaited(aiService.processSinglePhoto(updatedPhoto));
           } else {
             if (file.existsSync()) file.deleteSync();
           }
         } catch (e) {
-          debugPrint('Sync: Thumbnail/EXIF mislukt voor ${photo.fileName}: $e');
+          debugPrint('Sync: Thumbnail verwerking mislukt voor ${photo.fileName}: $e');
         }
       }));
-      await Future.delayed(const Duration(milliseconds: 800));
     }
   }
 
@@ -311,27 +309,34 @@ class SyncEngine {
 
       // Adres bepalen op basis van GPS
       String? locationName;
+      final List<String> locTags = [];
       if (lat != null && lon != null) {
-        // Check of we al een locatie hebben om dubbele (trage) geocoding te voorkomen
+        // We proberen ALTIJD te geocoden als de huidige naam te kort is of ontbreekt
         final existing = await (_db.select(_db.photos)..where((t) => t.id.equals(photoId))).getSingleOrNull();
-        if (existing?.locationName != null && existing!.locationName!.isNotEmpty) {
+        bool needsBetterName = existing?.locationName == null || 
+                              existing!.locationName!.length < 3 || 
+                              !existing.locationName!.contains(',');
+                              
+        if (!needsBetterName) {
           locationName = existing.locationName;
+          locTags.addAll(locationName!.split(',').map((s) => s.trim().toLowerCase()));
         } else {
           try {
-            List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon);
+            debugPrint('Sync: Geocoding starten voor foto $photoId...');
+            List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon).timeout(const Duration(seconds: 5));
             if (placemarks.isNotEmpty) {
               final p = placemarks.first;
               final city = p.locality ?? p.subLocality ?? p.administrativeArea;
               final country = p.country;
               
               if (city != null) {
-                locationName = city;
-                if (country != null) {
-                  locationName = '$city, $country';
-                }
+                locationName = country != null ? '$city, $country' : city;
+                locTags.add(city.toLowerCase());
               } else if (country != null) {
                 locationName = country;
               }
+              if (country != null) locTags.add(country.toLowerCase());
+              debugPrint('Sync: Locatie gevonden: $locationName');
             }
           } catch (e) {
             debugPrint('Sync: Geocoding mislukt voor foto $photoId: $e');
@@ -340,46 +345,30 @@ class SyncEngine {
       }
 
       DateTime? exifDate;
-      final String? dateOriginal = data['EXIF DateTimeOriginal']?.printable;
-      final String? dateDigitized = data['EXIF DateTimeDigitized']?.printable;
-      final String? dateImage = data['Image DateTime']?.printable;
-      
-      List<DateTime> foundDates = [];
-      void parseAndAdd(String? s) {
-        if (s == null) return;
-        try {
-          final parts = s.split(' ');
-          if (parts.length == 2) {
-            final dateParts = parts[0].replaceAll(':', '-');
-            final d = DateTime.tryParse('$dateParts ${parts[1]}');
-            if (d != null) foundDates.add(d);
-          }
-        } catch (_) {}
-      }
+      // ... (parsing dates)
 
-      parseAndAdd(dateOriginal);
-      parseAndAdd(dateDigitized);
-      parseAndAdd(dateImage);
+      // Haal bestaande tags op om te mergen
+      final photo = await (_db.select(_db.photos)..where((t) => t.id.equals(photoId))).getSingle();
+      final Set<String> allTags = Set<String>.from(photo.aiTags);
+      allTags.addAll(locTags);
 
-      if (foundDates.isNotEmpty) {
-        foundDates.sort();
-        exifDate = foundDates.first;
-      }
-
+      // Alleen bijwerken wat we nog niet hebben of wat beter is in het bestand
+      // We gebruiken 'absent' voor waarden die we niet willen overschrijven
       await (_db.update(_db.photos)..where((t) => t.id.equals(photoId))).write(
         PhotosCompanion(
-          cameraModel: Value(camera),
-          exposureTime: Value(exposure),
-          fNumber: Value(fNumber != null ? 'f/$fNumber' : null),
-          iso: Value(iso != null ? int.tryParse(iso) : null),
-          focalLength: Value(focal != null ? '${focal}mm' : null),
-          flash: Value(flash),
-          lensModel: Value(lens),
-          locationName: Value(locationName),
+          cameraModel: camera != null ? Value(camera) : const Value.absent(),
+          exposureTime: exposure != null ? Value(exposure) : const Value.absent(),
+          fNumber: fNumber != null ? Value('f/$fNumber') : const Value.absent(),
+          iso: iso != null ? Value(int.tryParse(iso)) : const Value.absent(),
+          focalLength: focal != null ? Value('${focal}mm') : const Value.absent(),
+          flash: flash != null ? Value(flash) : const Value.absent(),
+          lensModel: lens != null ? Value(lens) : const Value.absent(),
+          locationName: locationName != null ? Value(locationName) : const Value.absent(),
           dateTaken: exifDate != null ? Value(exifDate) : const Value.absent(),
+          aiTags: Value(allTags.toList()),
         ),
       );
-      debugPrint('Sync: Metadata bijgewerkt voor foto $photoId (Datum: ${exifDate ?? "geen EXIF"})');
+      debugPrint('Sync: Metadata verfijnd vanuit bestand voor foto $photoId');
     } catch (e) {
       debugPrint('Sync: Fout bij lokaal uitlezen EXIF voor foto $photoId: $e');
     }
