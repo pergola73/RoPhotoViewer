@@ -16,7 +16,8 @@ class AITaggingService {
   bool _isProcessing = false;
 
   AITaggingService(this._db, [dynamic dummy]) {
-    _labeler ??= ImageLabeler(options: ImageLabelerOptions(confidenceThreshold: 0.5));
+    // We verlagen de threshold naar 0.4 voor meer (uitgebreide) resultaten
+    _labeler ??= ImageLabeler(options: ImageLabelerOptions(confidenceThreshold: 0.4));
   }
 
   /// Verwerkt alle foto's die nog geen locatie of AI tags hebben.
@@ -48,9 +49,9 @@ class AITaggingService {
   Future<void> processSinglePhoto(Photo photo) async {
     try {
       final tempDir = await getTemporaryDirectory();
-      final fragmentPath = p.join(tempDir.path, 'exif_frag_${photo.id}.tmp');
       
       // 1. EXIF extractie via 128KB fragment (snel en accuraat voor metadata)
+      final fragmentPath = p.join(tempDir.path, 'exif_frag_${photo.id}.tmp');
       final pBytes = await _api.downloadPartialFile(photo.kdrivePath, bytes: 131072);
       if (pBytes != null) {
         final file = File(fragmentPath);
@@ -63,15 +64,28 @@ class AITaggingService {
       }
 
       // 2. AI Labeling (alleen voor afbeeldingen)
-      // We gebruiken de THUMBNAIL als die er is, dat voorkomt 'libjpeg error 105'
       if (photo.mediaType == 'image') {
         File? aiInputFile;
+        // Probeer eerst de thumbnail (die is compleet en voorkomt console errors)
         if (photo.localThumbnailPath != null && File(photo.localThumbnailPath!).existsSync()) {
           aiInputFile = File(photo.localThumbnailPath!);
+        } else {
+          // Als er geen thumbnail is, download een tijdelijk fragment van 512KB voor AI
+          // Dit geeft meer pixels dan 128KB voor een betere herkenning
+          final aiFragBytes = await _api.downloadPartialFile(photo.kdrivePath, bytes: 524288);
+          if (aiFragBytes != null) {
+            final aiFile = File(p.join(tempDir.path, 'ai_frag_${photo.id}.tmp'));
+            await aiFile.writeAsBytes(aiFragBytes);
+            aiInputFile = aiFile;
+          }
         }
         
         if (aiInputFile != null) {
           await _applyAiLabeling(photo, aiInputFile);
+          // Verwijder tijdelijk AI bestand als het niet de thumbnail was
+          if (!aiInputFile.path.contains('thumbnails')) {
+            if (await aiInputFile.exists()) await aiInputFile.delete();
+          }
         }
       }
     } catch (e) {
@@ -86,13 +100,16 @@ class AITaggingService {
       
       if (labels != null && labels.isNotEmpty) {
         final List<String> newTags = labels
-            .where((l) => l.confidence > 0.6)
-            .map((l) => l.label.toLowerCase())
+            .where((l) => l.confidence > 0.45)
+            .map((l) => _translateToDutch(l.label))
             .toList();
             
         if (newTags.isNotEmpty) {
           final Set<String> allTags = Set<String>.from(photo.aiTags);
-          allTags.addAll(newTags);
+          // Voeg alleen unieke tags toe
+          for (var tag in newTags) {
+            if (tag.isNotEmpty) allTags.add(tag.toLowerCase());
+          }
           
           await (_db.update(_db.photos)..where((t) => t.id.equals(photo.id))).write(
             PhotosCompanion(aiTags: Value(allTags.toList())),
@@ -100,8 +117,134 @@ class AITaggingService {
         }
       }
     } catch (_) {
-      // Fouten hier negeren we in productie
+      // Fouten negeren in productie
     }
+  }
+
+  String _translateToDutch(String label) {
+    final Map<String, String> translations = {
+      'Sky': 'Lucht',
+      'Water': 'Water',
+      'Tree': 'Boom',
+      'Plant': 'Plant',
+      'Flower': 'Bloem',
+      'Dog': 'Hond',
+      'Cat': 'Kat',
+      'Human': 'Persoon',
+      'Person': 'Persoon',
+      'Man': 'Man',
+      'Woman': 'Vrouw',
+      'Building': 'Gebouw',
+      'House': 'Huis',
+      'Car': 'Auto',
+      'Vehicle': 'Voertuig',
+      'Cloud': 'Wolk',
+      'Nature': 'Natuur',
+      'Landscape': 'Landschap',
+      'Mountain': 'Berg',
+      'Beach': 'Strand',
+      'Sea': 'Zee',
+      'Ocean': 'Oceaan',
+      'Forest': 'Bos',
+      'Grass': 'Gras',
+      'Field': 'Veld',
+      'Food': 'Eten',
+      'Drink': 'Drinken',
+      'Plate': 'Bord',
+      'Table': 'Tafel',
+      'Chair': 'Stoel',
+      'Furniture': 'Meubels',
+      'Interior': 'Interieur',
+      'Room': 'Kamer',
+      'Window': 'Raam',
+      'Door': 'Deur',
+      'Street': 'Straat',
+      'Road': 'Weg',
+      'City': 'Stad',
+      'Urban': 'Stedelijk',
+      'Architecture': 'Architectuur',
+      'Travel': 'Reizen',
+      'Vacation': 'Vakantie',
+      'Sun': 'Zon',
+      'Sunset': 'Zonsondergang',
+      'Sunrise': 'Zonsopkomst',
+      'Night': 'Nacht',
+      'Light': 'Licht',
+      'Dark': 'Donker',
+      'Color': 'Kleur',
+      'Blue': 'Blauw',
+      'Green': 'Groen',
+      'Red': 'Rood',
+      'Yellow': 'Geel',
+      'White': 'Wit',
+      'Black': 'Zwart',
+      'Animal': 'Dier',
+      'Bird': 'Vogel',
+      'Fish': 'Vis',
+      'Insect': 'Insect',
+      'Mammal': 'Zoogdier',
+      'Pet': 'Huisdier',
+      'Technology': 'Technologie',
+      'Computer': 'Computer',
+      'Laptop': 'Laptop',
+      'Phone': 'Telefoon',
+      'Camera': 'Camera',
+      'Art': 'Kunst',
+      'Painting': 'Schilderij',
+      'Drawing': 'Tekening',
+      'Text': 'Tekst',
+      'Writing': 'Schrijven',
+      'Book': 'Boek',
+      'Paper': 'Papier',
+      'Music': 'Muziek',
+      'Sport': 'Sport',
+      'Game': 'Spel',
+      'Toy': 'Speelgoed',
+      'Child': 'Kind',
+      'Baby': 'Baby',
+      'Couple': 'Stel',
+      'Family': 'Familie',
+      'Friend': 'Vriend',
+      'Wedding': 'Bruiloft',
+      'Party': 'Feest',
+      'Event': 'Evenement',
+      'Wood': 'Hout',
+      'Snow': 'Sneeuw',
+      'Ice': 'IJs',
+      'Fire': 'Vuur',
+      'Smile': 'Glimlach',
+      'Face': 'Gezicht',
+      'Clothing': 'Kleding',
+      'Shoe': 'Schoen',
+      'Hat': 'Hoed',
+      'Bag': 'Tas',
+      'Bicycle': 'Fiets',
+      'Motorcycle': 'Motor',
+      'Boat': 'Boot',
+      'Airplane': 'Vliegtuig',
+      'Train': 'Trein',
+      'Bridge': 'Brug',
+      'Tower': 'Toren',
+      'Park': 'Park',
+      'Garden': 'Tuin',
+      'Desert': 'Woestijn',
+      'Shore': 'Kust',
+      'River': 'Rivier',
+      'Lake': 'Meer',
+      'Rock': 'Rots',
+      'Stone': 'Steen',
+      'Sand': 'Zand',
+      'Animal': 'Dier',
+      'Wildlife': 'Wilde dieren',
+      'Pet': 'Huisdier',
+      'Mammal': 'Zoogdier',
+      'Vertebrate': 'Gewervelde',
+      'Canidae': 'Hondachtige',
+      'Felidae': 'Katachtige',
+      'Outdoor': 'Buiten',
+    };
+
+    return translations[label] ?? label;
   }
 
   Future<void> _saveMetadataAndLocation(Photo photo, Map<String, IfdTag> data) async {
@@ -142,8 +285,6 @@ class AITaggingService {
         ? (model.contains(make) ? model : '$make $model') 
         : (model ?? make);
 
-    // Update de foto met metadata. We gebruiken Value.absent() voor velden die we niet hebben
-    // om te voorkomen dat we bestaande data overschrijven met null.
     await (_db.update(_db.photos)..where((t) => t.id.equals(photo.id))).write(
       PhotosCompanion(
         latitude: lat != null ? Value(lat) : const Value.absent(),
