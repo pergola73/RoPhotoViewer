@@ -31,6 +31,9 @@ class Photos extends Table {
   TextColumn get lensModel => text().nullable()();
   TextColumn get keywords => text().nullable()();
   TextColumn get people => text().nullable()(); // Namen van personen gescheiden door komma's
+
+  @override
+  List<Index> get indices => [Index('idx_date_taken', 'CREATE INDEX idx_date_taken ON photos (date_taken);')];
 }
 
 class Persons extends Table {
@@ -79,7 +82,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration {
@@ -126,13 +129,35 @@ class AppDatabase extends _$AppDatabase {
         if (from < 10) {
           await m.addColumn(detectedFaces, detectedFaces.embedding);
         }
+        if (from < 11) {
+          await m.createIndex(Index('idx_date_taken', 'CREATE INDEX idx_date_taken ON photos (date_taken);'));
+        }
       },
     );
   }
 
   // Queries
+  Future<int> getTotalPhotoCount({bool onlyFavorites = false}) {
+    final query = select(photos);
+    if (onlyFavorites) {
+      query.where((t) => t.isFavorite.equals(true));
+    }
+    return query.get().then((value) => value.length); // Eenvoudige manier voor count
+  }
+
   Future<List<Photo>> getAllPhotos() => (select(photos)..orderBy([(t) => OrderingTerm(expression: t.dateTaken, mode: OrderingMode.desc)])).get();
   
+  Future<List<Photo>> getPhotosPaged(int limit, int offset, {bool onlyFavorites = false}) {
+    final query = select(photos);
+    if (onlyFavorites) {
+      query.where((t) => t.isFavorite.equals(true));
+    }
+    return (query
+      ..orderBy([(t) => OrderingTerm(expression: t.dateTaken, mode: OrderingMode.desc)])
+      ..limit(limit, offset: offset))
+      .get();
+  }
+
   Stream<List<Photo>> watchAllPhotos() => (select(photos)..orderBy([(t) => OrderingTerm(expression: t.dateTaken, mode: OrderingMode.desc)])).watch();
   
   Future<List<Photo>> searchPhotos(String query) {

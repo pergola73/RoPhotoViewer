@@ -335,11 +335,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 32),
                   if (_version.isNotEmpty)
-                    Center(
-                      child: Text(
-                        'Versie $_version ($_buildNumber)',
-                        style: const TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
+                    BlocBuilder<GalleryBloc, GalleryState>(
+                      builder: (context, state) {
+                        return Center(
+                          child: Column(
+                            children: [
+                              Text(
+                                'Totaal aantal foto\'s: ${state.totalPhotoCount}',
+                                style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Versie $_version ($_buildNumber)',
+                                style: const TextStyle(color: Colors.grey, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   const SizedBox(height: 16),
                   ElevatedButton(

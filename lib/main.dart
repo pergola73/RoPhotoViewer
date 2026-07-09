@@ -9,13 +9,38 @@ import 'package:kphoto/core/network/sync_engine.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 import 'package:kphoto/presentation/screens/firebase_login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
+@pragma('vm:entry-point')
+void startCallback() {
+  FlutterForegroundTask.setTaskHandler(SyncTaskHandler());
+}
+
+class SyncTaskHandler extends TaskHandler {
+  @override
+  Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
+    debugPrint('SyncTaskHandler: Foreground service gestart');
+  }
+
+  @override
+  void onRepeatEvent(DateTime timestamp) {
+    // Wordt aangeroepen op basis van interval, we gebruiken liever onStart voor de main loop
+  }
+
+  @override
+  Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {
+    debugPrint('SyncTaskHandler: Foreground service gestopt (Timeout: $isTimeout)');
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  FlutterForegroundTask.initCommunicationPort();
   
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,

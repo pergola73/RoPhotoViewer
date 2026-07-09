@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kphoto/core/database/app_database.dart';
 import 'package:drift/drift.dart' show Value;
+import 'package:intl/intl.dart';
 
 import 'package:kphoto/presentation/blocs/gallery_bloc.dart';
 
@@ -27,14 +28,38 @@ class _GalleryScreenState extends State<GalleryScreen> {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
   double _baseScale = 1.0;
+  
+  // Fast Scroll states
+  bool _isDragging = false;
+  double _dragOffset = 0.0;
+  String _scrollLabel = '';
+  DateTime? _lastHapticDate;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     // Start automatische sync op de achtergrond bij openen
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<GalleryBloc>().add(LoadGallery());
       context.read<GalleryBloc>().add(SyncWithKDrive());
     });
+  }
+
+  void _onScroll() {
+    if (_isBottom) {
+      context.read<GalleryBloc>().add(LoadMorePhotos());
+    }
+    if (!_isDragging) {
+      setState(() {}); // Update scroller position during normal scroll
+    }
+  }
+
+  bool get _isBottom {
+    if (!_scrollController.hasClients) return false;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+    return currentScroll >= (maxScroll * 0.9);
   }
 
   @override
@@ -42,6 +67,51 @@ class _GalleryScreenState extends State<GalleryScreen> {
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onDragUpdate(DragUpdateDetails details, double maxHeight, GalleryState state) {
+    if (!_scrollController.hasClients || state.photos.isEmpty) return;
+
+    setState(() {
+      _isDragging = true;
+      _dragOffset = (_dragOffset + details.delta.dy).clamp(0.0, maxHeight);
+    });
+
+    final double scrollPercent = _dragOffset / maxHeight;
+    final double targetScroll = scrollPercent * _scrollController.position.maxScrollExtent;
+    _scrollController.jumpTo(targetScroll);
+
+    // Update label based on currently visible photo (estimated)
+    final int index = (state.photos.length * scrollPercent).floor().clamp(0, state.photos.length - 1);
+    final photo = state.photos[index];
+    
+    final newLabel = _getScrollLabel(photo.dateTaken, state.totalPhotoCount);
+    if (newLabel != _scrollLabel) {
+      setState(() {
+        _scrollLabel = newLabel;
+      });
+      
+      // Haptic feedback when passing a "boundary" (e.g., new year or month)
+      if (_lastHapticDate == null || _shouldTriggerHaptic(_lastHapticDate!, photo.dateTaken)) {
+        HapticFeedback.selectionClick();
+        _lastHapticDate = photo.dateTaken;
+      }
+    }
+  }
+
+  String _getScrollLabel(DateTime date, int totalCount) {
+    if (totalCount > 1000) {
+      return date.year.toString();
+    } else if (totalCount > 100) {
+      return DateFormat('MMM yyyy', 'nl_NL').format(date);
+    } else {
+      return DateFormat('d MMM', 'nl_NL').format(date);
+    }
+  }
+
+  bool _shouldTriggerHaptic(DateTime last, DateTime current) {
+    // Trigger als jaar verandert, of maand als er minder foto's zijn
+    return last.year != current.year || (last.month != current.month);
   }
 
   @override
@@ -128,18 +198,14 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 }
               }
             },
-            child: Scrollbar(
-              controller: _scrollController,
-              interactive: true,
-              thickness: 12.0,
-              radius: const Radius.circular(6),
-              thumbVisibility: true,
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  context.read<GalleryBloc>().add(SyncWithKDrive());
-                  await context.read<GalleryBloc>().stream.firstWhere((state) => state.status != GalleryStatus.syncing).timeout(const Duration(seconds: 30), onTimeout: () => state);
-                },
-                child: CustomScrollView(
+            child: Stack(
+              children: [
+                RefreshIndicator(
+                  onRefresh: () async {
+                    context.read<GalleryBloc>().add(SyncWithKDrive());
+                    await context.read<GalleryBloc>().stream.firstWhere((state) => state.status != GalleryStatus.syncing).timeout(const Duration(seconds: 30), onTimeout: () => state);
+                  },
+                  child: CustomScrollView(
                   controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
@@ -346,11 +412,104 @@ class _GalleryScreenState extends State<GalleryScreen> {
                           ),
                         ),
                       ),
+                    
+                    if (!state.hasReachedMax && state.photos.isNotEmpty)
+                      const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 32),
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                      ),
+                    const SliverPadding(padding: EdgeInsets.only(bottom: 100)), // Ruimte onderaan voor makkelijker scrollen
                   ],
                 ),
               ),
-            ),
+              
+              // Custom Fast Scroller Overlay
+              if (state.photos.isNotEmpty)
+                _buildFastScroller(context, state),
+            ],
           ),
+        ),
+      );
+    },
+  );
+}
+
+  Widget _buildFastScroller(BuildContext context, GalleryState state) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double maxHeight = constraints.maxHeight - 100; // Ruimte voor de handle
+        double currentThumbOffset = 0.0;
+        
+        if (_scrollController.hasClients && _scrollController.position.maxScrollExtent > 0) {
+          if (_isDragging) {
+            currentThumbOffset = _dragOffset;
+          } else {
+            final scrollPercent = _scrollController.offset / _scrollController.position.maxScrollExtent;
+            currentThumbOffset = (scrollPercent * maxHeight).clamp(0.0, maxHeight);
+            // We updaten _dragOffset niet hier om verspringen te voorkomen tijdens drag
+          }
+        }
+
+        return Stack(
+          children: [
+            // Het Label (De "Bubble") - Gefixeerd op 1/4 van de bovenkant zoals gevraagd
+            if (_isDragging)
+              Positioned(
+                top: constraints.maxHeight * 0.25,
+                right: 60,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 2))],
+                  ),
+                  child: Text(
+                    _scrollLabel,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                ),
+              ),
+
+            // De Slider Handle
+            Positioned(
+              top: currentThumbOffset + 50, // Kleine offset vanaf boven
+              right: 8,
+              child: GestureDetector(
+                onVerticalDragStart: (details) {
+                  setState(() {
+                    _isDragging = true;
+                    _dragOffset = currentThumbOffset;
+                    HapticFeedback.lightImpact();
+                  });
+                },
+                onVerticalDragUpdate: (details) => _onDragUpdate(details, maxHeight, state),
+                onVerticalDragEnd: (_) => setState(() {
+                  _isDragging = false;
+                  _lastHapticDate = null;
+                }),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _isDragging ? Theme.of(context).primaryColor : Colors.grey.withOpacity(0.4),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      if (_isDragging)
+                        BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.unfold_more,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ),
+          ],
         );
       },
     );

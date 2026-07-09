@@ -18,6 +18,8 @@ class GalleryState extends Equatable {
 
   final List<dynamic> trashItems;
   final Set<String> selectedTrashIds;
+  final bool hasReachedMax;
+  final int totalPhotoCount;
 
   const GalleryState({
     this.status = GalleryStatus.initial,
@@ -33,6 +35,8 @@ class GalleryState extends Equatable {
     this.aiScanTotal = 0,
     this.trashItems = const [],
     this.selectedTrashIds = const {},
+    this.hasReachedMax = false,
+    this.totalPhotoCount = 0,
   });
 
   GalleryState copyWith({
@@ -49,6 +53,8 @@ class GalleryState extends Equatable {
     int? aiScanTotal,
     List<dynamic>? trashItems,
     Set<String>? selectedTrashIds,
+    bool? hasReachedMax,
+    int? totalPhotoCount,
   }) {
     return GalleryState(
       status: status ?? this.status,
@@ -64,6 +70,8 @@ class GalleryState extends Equatable {
       aiScanTotal: aiScanTotal ?? this.aiScanTotal,
       trashItems: trashItems ?? this.trashItems,
       selectedTrashIds: selectedTrashIds ?? this.selectedTrashIds,
+      hasReachedMax: hasReachedMax ?? this.hasReachedMax,
+      totalPhotoCount: totalPhotoCount ?? this.totalPhotoCount,
     );
   }
 
@@ -82,5 +90,7 @@ class GalleryState extends Equatable {
     aiScanTotal,
     trashItems,
     selectedTrashIds,
+    hasReachedMax,
+    totalPhotoCount,
   ];
 }

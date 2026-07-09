@@ -9,6 +9,8 @@ abstract class GalleryEvent extends Equatable {
 
 class LoadGallery extends GalleryEvent {}
 
+class LoadMorePhotos extends GalleryEvent {}
+
 class PhotosUpdated extends GalleryEvent {
   final List<Photo> photos;
   const PhotosUpdated(this.photos);

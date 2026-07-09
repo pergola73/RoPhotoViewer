@@ -16,10 +16,12 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
   final SyncEngine? syncEngine;
   StreamSubscription? _photosSubscription;
   Timer? _throttleTimer;
+  static const int _pageSize = 200;
 
   GalleryBloc(this.db, {this.syncEngine}) 
       : super(const GalleryState()) {
     on<LoadGallery>(_onLoadGallery);
+    on<LoadMorePhotos>(_onLoadMorePhotos);
     on<SearchGallery>(_onSearchGallery);
     on<SyncWithKDrive>(_onSyncWithKDrive);
     on<PhotosUpdated>(_onPhotosUpdated);
@@ -41,20 +43,8 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     on<AiScanProgressUpdated>(_onAiScanProgressUpdated);
     on<AiScanFinished>(_onAiScanFinished);
 
-    _photosSubscription = db.watchAllPhotos().listen((photos) {
-      if (state.searchQuery.isEmpty) {
-        // Gebruik een timer die updates doorlaat, maar niet vaker dan elke 1.5 seconde tijdens sync
-        if (_throttleTimer?.isActive ?? false) return;
-
-        final duration = (state.status == GalleryStatus.syncing) 
-            ? const Duration(milliseconds: 800)
-            : const Duration(milliseconds: 200);
-
-        _throttleTimer = Timer(duration, () {
-          add(PhotosUpdated(photos));
-        });
-      }
-    });
+    // We stoppen met het constant monitoren van de gehele tabel bij 30.000 items.
+    // In plaats daarvan laden we expliciet bij acties.
   }
 
   @override
@@ -106,12 +96,8 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
 
   void _onToggleFavoriteFilter(ToggleFavoriteFilter event, Emitter<GalleryState> emit) async {
     final newShowOnlyFavorites = !state.showOnlyFavorites;
-    final photos = newShowOnlyFavorites 
-        ? state.photos.where((p) => p.isFavorite).toList()
-        : await db.getAllPhotos();
-        
-    final grouped = _groupPhotos(photos, state.viewMode);
-    emit(state.copyWith(showOnlyFavorites: newShowOnlyFavorites, photos: photos, groupedPhotos: grouped));
+    emit(state.copyWith(showOnlyFavorites: newShowOnlyFavorites));
+    add(LoadGallery());
   }
 
   void _onTogglePhotoSelection(TogglePhotoSelection event, Emitter<GalleryState> emit) {
@@ -164,11 +150,40 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
   }
 
   Future<void> _onLoadGallery(LoadGallery event, Emitter<GalleryState> emit) async {
-    emit(state.copyWith(status: GalleryStatus.loading));
+    emit(state.copyWith(status: GalleryStatus.loading, photos: [], hasReachedMax: false));
     try {
-      final photos = await db.getAllPhotos();
+      final totalCount = await db.getTotalPhotoCount(onlyFavorites: state.showOnlyFavorites);
+      final photos = await db.getPhotosPaged(_pageSize, 0, onlyFavorites: state.showOnlyFavorites);
       final grouped = _groupPhotos(photos, state.viewMode);
-      emit(state.copyWith(status: GalleryStatus.success, photos: photos, groupedPhotos: grouped));
+      emit(state.copyWith(
+        status: GalleryStatus.success, 
+        photos: photos, 
+        groupedPhotos: grouped,
+        hasReachedMax: photos.length < _pageSize,
+        totalPhotoCount: totalCount,
+      ));
+    } catch (_) {
+      emit(state.copyWith(status: GalleryStatus.failure));
+    }
+  }
+
+  Future<void> _onLoadMorePhotos(LoadMorePhotos event, Emitter<GalleryState> emit) async {
+    if (state.hasReachedMax || state.status == GalleryStatus.loading) return;
+
+    try {
+      final photos = await db.getPhotosPaged(_pageSize, state.photos.length, onlyFavorites: state.showOnlyFavorites);
+      if (photos.isEmpty) {
+        emit(state.copyWith(hasReachedMax: true));
+      } else {
+        final allPhotos = List<Photo>.from(state.photos)..addAll(photos);
+        final grouped = _groupPhotos(allPhotos, state.viewMode);
+        emit(state.copyWith(
+          status: GalleryStatus.success,
+          photos: allPhotos,
+          groupedPhotos: grouped,
+          hasReachedMax: photos.length < _pageSize,
+        ));
+      }
     } catch (_) {
       emit(state.copyWith(status: GalleryStatus.failure));
     }
@@ -177,11 +192,21 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
   Future<void> _onSearchGallery(SearchGallery event, Emitter<GalleryState> emit) async {
     emit(state.copyWith(status: GalleryStatus.loading, searchQuery: event.query));
     try {
-      final photos = event.query.isEmpty 
-          ? await db.getAllPhotos()
-          : await db.searchPhotos(event.query);
+      List<Photo> photos;
+      if (event.query.isEmpty) {
+        photos = await db.getPhotosPaged(_pageSize, 0);
+      } else {
+        // Voor zoekopdrachten laden we momenteel de hele match set, 
+        // maar beperken we het resultaat in de DB query als dat nodig is.
+        photos = await db.searchPhotos(event.query);
+      }
       final grouped = _groupPhotos(photos, state.viewMode);
-      emit(state.copyWith(status: GalleryStatus.success, photos: photos, groupedPhotos: grouped));
+      emit(state.copyWith(
+        status: GalleryStatus.success, 
+        photos: photos, 
+        groupedPhotos: grouped,
+        hasReachedMax: event.query.isNotEmpty || photos.length < _pageSize,
+      ));
     } catch (_) {
       emit(state.copyWith(status: GalleryStatus.failure));
     }
@@ -252,8 +277,11 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
       }
       emit(state.copyWith(status: GalleryStatus.syncFinished));
       
-      // Start automatisch de AI scan voor nieuwe foto's na de sync
-      add(const StartAiScan(forceAll: false));
+      // Herlaad de eerste pagina na een sync om nieuwe foto's te tonen
+      add(LoadGallery());
+      
+      // We starten de AI scan niet meer automatisch hier om interferentie te voorkomen.
+      // De gebruiker kan dit nu handmatig doen in de instellingen voor meer controle.
 
     } catch (e) {
       debugPrint('GalleryBloc: Sync fout: $e');
