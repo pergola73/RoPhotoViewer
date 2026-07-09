@@ -138,14 +138,21 @@ class AppDatabase extends _$AppDatabase {
 
   // Queries
   Future<int> getTotalPhotoCount({bool onlyFavorites = false}) {
-    final query = select(photos);
+    final countExp = photos.id.count();
+    final query = selectOnly(photos)..addColumns([countExp]);
     if (onlyFavorites) {
-      query.where((t) => t.isFavorite.equals(true));
+      query.where(photos.isFavorite.equals(true));
     }
-    return query.get().then((value) => value.length); // Eenvoudige manier voor count
+    return query.map((row) => row.read(countExp)! ).getSingle();
   }
 
   Future<List<Photo>> getAllPhotos() => (select(photos)..orderBy([(t) => OrderingTerm(expression: t.dateTaken, mode: OrderingMode.desc)])).get();
+
+  Future<Set<String>> getAllKdrivePaths() async {
+    final query = select(photos).map((p) => p.kdrivePath);
+    final results = await query.get();
+    return results.toSet();
+  }
   
   Future<List<Photo>> getPhotosPaged(int limit, int offset, {bool onlyFavorites = false}) {
     final query = select(photos);

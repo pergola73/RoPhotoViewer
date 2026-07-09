@@ -62,6 +62,10 @@ class SyncEngine {
     debugPrint('Sync: Starten sync vanaf map $rootFolderId...');
 
     try {
+      // Haal alle bestaande IDs op om database-queries in de loop te voorkomen
+      final Set<String> existingIds = await _db.getAllKdrivePaths();
+      debugPrint('Sync: ${existingIds.length} reeds bekende fotos in database.');
+
       final localDir = await getApplicationDocumentsDirectory();
       final thumbDir = Directory(p.join(localDir.path, 'thumbnails'));
       if (!thumbDir.existsSync()) thumbDir.createSync(recursive: true);
@@ -73,15 +77,17 @@ class SyncEngine {
 
       while (folderQueue.isNotEmpty) {
         final currentFolderId = folderQueue.removeAt(0);
+        debugPrint('Sync: Scannen map $currentFolderId...');
 
         try {
+          // Haal in één keer alle bekende kdrivePaths op voor deze map om queries te besparen
+          // (Optimalisatie: we checken alleen of we de ID al kennen)
+          
           await for (final batch in _apiService.getChildrenStream(currentFolderId)) {
-            // Gebruik compute voor het zware parsing werk van de batch
             final processedResults = await compute(_processBatchInIsolate, batch);
 
             List<PhotosCompanion> metadataBuffer = [];
-            List<Photo> photosToDownloadInBatch = [];
-
+            
             for (final result in processedResults) {
               final fileId = result['id'];
               
@@ -93,13 +99,8 @@ class SyncEngine {
                 continue;
               }
 
-              final existing = await _db.getPhotoByKdriveId(fileId);
-              if (existing != null) {
-                if (existing.localThumbnailPath == null || !File(existing.localThumbnailPath!).existsSync()) {
-                  photosToDownloadInBatch.add(existing);
-                }
-                continue;
-              }
+              // Razendsnelle check in het geheugen ipv database
+              if (existingIds.contains(fileId)) continue;
 
               totalProcessed++;
               metadataBuffer.add(PhotosCompanion.insert(
@@ -117,32 +118,32 @@ class SyncEngine {
 
             if (metadataBuffer.isNotEmpty) {
               await _flushMetadata(metadataBuffer);
-              for (var m in metadataBuffer) {
-                final photo = await _db.getPhotoByKdriveId(m.kdrivePath.value);
-                if (photo != null) photosToDownloadInBatch.add(photo);
-              }
-            }
-
-            if (photosToDownloadInBatch.isNotEmpty) {
-              await _downloadThumbnails(photosToDownloadInBatch, thumbDir);
+              debugPrint('Sync: $totalNew nieuwe items gevonden tot nu toe...');
               
-              // Update foreground task notification text
+              // Update teller direct voor de UI
+              onProgress?.call(totalProcessed);
+              
               if (Platform.isAndroid) {
                 FlutterForegroundTask.updateService(
                   notificationTitle: 'K-Photo Sync',
-                  notificationText: 'Gescand: $totalProcessed items...',
+                  notificationText: 'Indexeren: $totalProcessed items gevonden...',
                 );
               }
             }
-
-            onProgress?.call(totalProcessed);
           }
         } catch (e) {
           debugPrint('Sync: Fout in map $currentFolderId: $e');
         }
       }
 
-      debugPrint('Sync: Klaar. $totalNew nieuwe media bestanden gevonden.');
+      debugPrint('Sync: Indexeren klaar. Starten met downloaden van thumbnails voor $totalNew items...');
+      
+      // Nu pas thumbnails downloaden voor alles wat nog ontbreekt
+      if (totalNew > 0 || totalProcessed > 0) {
+        await _downloadMissingThumbnails(onProgress);
+      }
+
+      debugPrint('Sync: Klaar. $totalNew nieuwe media bestanden verwerkt.');
 
     } catch (e, stack) {
       debugPrint('Sync: Fout — $e\n$stack');
@@ -302,6 +303,64 @@ class SyncEngine {
       });
     }
     return results;
+  }
+
+  Future<void> _downloadMissingThumbnails(Function(int)? onProgress) async {
+    final localDir = await getApplicationDocumentsDirectory();
+    final thumbDir = Directory(p.join(localDir.path, 'thumbnails'));
+    
+    // Haal alle foto's op die nog geen lokale thumbnail hebben
+    final allPhotos = await _db.getAllPhotos();
+    final pendingPhotos = allPhotos.where((p) => 
+      p.localThumbnailPath == null || !File(p.localThumbnailPath!).existsSync()
+    ).toList();
+
+    debugPrint('Sync: Downloaden van ${pendingPhotos.length} ontbrekende thumbnails...');
+    
+    if (pendingPhotos.isEmpty) return;
+
+    int downloaded = 0;
+    const int batchSize = 10; // Iets grotere batches voor thumbnails
+
+    for (int i = 0; i < pendingPhotos.length; i += batchSize) {
+      final chunk = pendingPhotos.skip(i).take(batchSize).toList();
+      
+      await Future.wait(chunk.map((photo) async {
+        final localThumbPath = p.join(thumbDir.path, 'thumb_${photo.id}.jpg');
+        try {
+          await _apiService
+              .downloadThumbnail(photo.kdrivePath, localThumbPath)
+              .timeout(const Duration(seconds: 30));
+
+          if (File(localThumbPath).existsSync()) {
+            await (_db.update(_db.photos)..where((t) => t.id.equals(photo.id)))
+                .write(PhotosCompanion(localThumbnailPath: Value(localThumbPath)));
+            
+            // Optioneel metadata updaten als dat nog niet gebeurd is
+            if (photo.cameraModel == null) {
+              await updateMetadataFromFile(photo.id, localThumbPath);
+            }
+          }
+        } catch (e) {
+          // Stille fail voor individuele thumbnails om proces niet te stoppen
+        }
+      }));
+
+      downloaded += chunk.length;
+      
+      // Update status
+      if (Platform.isAndroid) {
+        FlutterForegroundTask.updateService(
+          notificationTitle: 'K-Photo Sync',
+          notificationText: 'Thumbnails: $downloaded / ${pendingPhotos.length} binnen...',
+        );
+      }
+      
+      // Elke 50 thumbnails geven we een seintje aan de UI
+      if (downloaded % 50 == 0) {
+        onProgress?.call(downloaded);
+      }
+    }
   }
 
   Future<void> _downloadThumbnails(List<Photo> photos, Directory thumbDir) async {

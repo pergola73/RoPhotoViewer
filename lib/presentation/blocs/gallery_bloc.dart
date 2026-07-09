@@ -145,12 +145,15 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     emit(state.copyWith(selectedPhotoIds: currentSelection));
   }
 
-  void _onSyncProgressUpdated(SyncProgressUpdated event, Emitter<GalleryState> emit) {
-    emit(state.copyWith(processedCount: event.count));
+  void _onSyncProgressUpdated(SyncProgressUpdated event, Emitter<GalleryState> emit) async {
+    // Haal ook de nieuwe totaal-count op tijdens de sync voor de teller in Settings
+    final count = await db.getTotalPhotoCount(onlyFavorites: state.showOnlyFavorites);
+    emit(state.copyWith(processedCount: event.count, totalPhotoCount: count));
   }
 
   Future<void> _onLoadGallery(LoadGallery event, Emitter<GalleryState> emit) async {
-    emit(state.copyWith(status: GalleryStatus.loading, photos: [], hasReachedMax: false));
+    // Wis de lijst niet als we al foto's hebben (voorkomt flikkering bij refresh)
+    emit(state.copyWith(status: GalleryStatus.loading, hasReachedMax: false));
     try {
       final totalCount = await db.getTotalPhotoCount(onlyFavorites: state.showOnlyFavorites);
       final photos = await db.getPhotosPaged(_pageSize, 0, onlyFavorites: state.showOnlyFavorites);
