@@ -175,12 +175,57 @@ class KDriveApiService {
     }
   }
 
-  Future<void> deleteFile(String fileId) async {
+  Future<void> moveToTrash(String fileId) async {
     try {
       await _dio.delete('/2/drive/$_driveId/files/$fileId');
-      debugPrint('kDrive API: Bestand $fileId verwijderd.');
+      debugPrint('kDrive API: Bestand $fileId verplaatst naar prullenbak.');
     } catch (e) {
-      debugPrint('kDrive API: Fout bij verwijderen bestand $fileId: $e');
+      debugPrint('kDrive API: Fout bij verplaatsen naar prullenbak $fileId: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> restoreFile(String fileId) async {
+    try {
+      await _dio.post('/2/drive/$_driveId/files/$fileId/restore');
+      debugPrint('kDrive API: Bestand $fileId hersteld uit prullenbak.');
+    } catch (e) {
+      debugPrint('kDrive API: Fout bij herstellen bestand $fileId: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<dynamic>> getTrash() async {
+    if (!isInitialized) return [];
+    try {
+      final response = await _dio.get('/2/drive/$_driveId/trash');
+      final data = response.data;
+      if (data is Map && data['data'] != null) {
+        return (data['data'] as List<dynamic>);
+      }
+      return [];
+    } catch (e) {
+      debugPrint('kDrive API: Fout bij ophalen prullenbak: $e');
+      return [];
+    }
+  }
+
+  Future<void> emptyTrash() async {
+    try {
+      await _dio.delete('/2/drive/$_driveId/trash');
+      debugPrint('kDrive API: Prullenbak geleegd.');
+    } catch (e) {
+      debugPrint('kDrive API: Fout bij legen prullenbak: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteFilePermanent(String fileId) async {
+    try {
+      await _dio.delete('/2/drive/$_driveId/files/$fileId', queryParameters: {'force': true});
+      debugPrint('kDrive API: Bestand $fileId definitief verwijderd.');
+    } catch (e) {
+      debugPrint('kDrive API: Fout bij definitief verwijderen bestand $fileId: $e');
       rethrow;
     }
   }

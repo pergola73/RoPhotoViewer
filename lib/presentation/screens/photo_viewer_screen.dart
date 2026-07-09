@@ -2,9 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
-import 'package:k_photo/core/database/app_database.dart';
-import 'package:k_photo/core/network/kdrive_api_service.dart';
-import 'package:k_photo/core/network/auth_repository.dart';
+import 'package:kphoto/core/database/app_database.dart';
+import 'package:kphoto/core/network/kdrive_api_service.dart';
+import 'package:kphoto/core/network/auth_repository.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:drift/drift.dart' show Value;
@@ -15,7 +15,7 @@ import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:k_photo/presentation/blocs/gallery_bloc.dart';
+import 'package:kphoto/presentation/blocs/gallery_bloc.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
@@ -312,6 +312,42 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
     });
   }
 
+  void _editPeople(Photo photo) async {
+    final controller = TextEditingController(text: photo.people);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Personen op deze foto'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Bijv: Jan, Marie (gescheiden door komma)',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuleren')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Opslaan'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      final db = AppDatabase();
+      await (db.update(db.photos)..where((t) => t.id.equals(photo.id))).write(
+        PhotosCompanion(people: Value(result.isEmpty ? null : result)),
+      );
+      
+      setState(() {
+        widget.photos[_currentIndex] = photo.copyWith(people: Value(result.isEmpty ? null : result));
+      });
+    }
+  }
+
   Future<void> _sharePhoto(Photo photo) async {
     final path = photo.localHighResPath ?? photo.localThumbnailPath;
     if (path != null && File(path).existsSync()) {
@@ -459,6 +495,12 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                 title: const Text('Datum genomen'),
                 subtitle: Text(DateFormat('d MMMM yyyy HH:mm', 'nl_NL').format(photo.dateTaken)),
               ),
+              if (photo.keywords != null && photo.keywords!.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.label_outline),
+                  title: const Text('Keywords'),
+                  subtitle: Text(photo.keywords!),
+                ),
               if (photo.locationName != null)
                 ListTile(
                   leading: const Icon(Icons.map_outlined),
@@ -466,6 +508,26 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                   subtitle: Text(photo.locationName!),
                   trailing: const Icon(Icons.open_in_new, size: 18),
                   onTap: () => _openInMaps(photo.latitude, photo.longitude),
+                ),
+              if (photo.people != null && photo.people!.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.people_outline),
+                  title: const Text('Personen'),
+                  subtitle: Text(photo.people!),
+                  trailing: const Icon(Icons.edit, size: 18),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _editPeople(photo);
+                  },
+                )
+              else
+                ListTile(
+                  leading: const Icon(Icons.person_add_outlined),
+                  title: const Text('Personen toevoegen'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _editPeople(photo);
+                  },
                 ),
               if (photo.aiTags.isNotEmpty)
                 Padding(

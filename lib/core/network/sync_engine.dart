@@ -4,12 +4,12 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:k_photo/core/database/app_database.dart';
-import 'package:k_photo/core/network/kdrive_api_service.dart';
+import 'package:kphoto/core/database/app_database.dart';
+import 'package:kphoto/core/network/kdrive_api_service.dart';
 import 'package:exif/exif.dart';
 import 'package:geocoding/geocoding.dart';
 
-import 'package:k_photo/core/services/ai_tagging_service.dart';
+import 'package:kphoto/core/services/ai_tagging_service.dart';
 
 class SyncEngine {
   final KDriveApiService _apiService;
@@ -134,9 +134,6 @@ class SyncEngine {
 
       debugPrint('Sync: Klaar. $totalNew nieuwe media bestanden gevonden.');
 
-      final aiService = AITaggingService(_db);
-      aiService.processPendingPhotos();
-
     } catch (e, stack) {
       debugPrint('Sync: Fout — $e\n$stack');
     } finally {
@@ -247,6 +244,29 @@ class SyncEngine {
       final String? flash = data['EXIF Flash']?.printable;
       final String? lens = data['EXIF LensModel']?.printable ?? data['EXIF LensInfo']?.printable;
 
+      // Extract Keywords
+      String? extractedKeywords;
+      final xpKeywords = data['Image XPKeywords'];
+      final imageDescription = data['Image ImageDescription'];
+      final userComment = data['EXIF UserComment'];
+
+      if (xpKeywords != null) {
+        try {
+          if (xpKeywords.values is List<int>) {
+            final values = xpKeywords.values;
+            extractedKeywords = String.fromCharCodes((values as List<int>).where((c) => c != 0));
+          } else {
+            extractedKeywords = xpKeywords.printable;
+          }
+        } catch (_) {
+          extractedKeywords = xpKeywords.printable;
+        }
+      } else if (imageDescription != null && imageDescription.printable.isNotEmpty) {
+        extractedKeywords = imageDescription.printable;
+      } else if (userComment != null && userComment.printable.isNotEmpty) {
+        extractedKeywords = userComment.printable;
+      }
+
       // GPS extractie uit BESTAND (Cruciaal voor thumbnails)
       double? lat;
       double? lon;
@@ -333,6 +353,7 @@ class SyncEngine {
           latitude: lat != null ? Value(lat) : const Value.absent(),
           longitude: lon != null ? Value(lon) : const Value.absent(),
           aiTags: Value(allTags.toList()),
+          keywords: extractedKeywords != null ? Value(extractedKeywords) : const Value.absent(),
         ),
       );
     } catch (e) {

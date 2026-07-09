@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:k_photo/core/database/app_database.dart';
-import 'package:k_photo/core/network/auth_repository.dart';
-import 'package:k_photo/core/network/kdrive_api_service.dart';
-import 'package:k_photo/core/services/ai_tagging_service.dart';
-import 'package:k_photo/presentation/blocs/gallery_bloc.dart';
-import 'package:k_photo/core/network/sync_engine.dart';
+import 'package:kphoto/core/database/app_database.dart';
+import 'package:kphoto/core/network/auth_repository.dart';
+import 'package:kphoto/core/network/kdrive_api_service.dart';
+import 'package:kphoto/core/services/ai_tagging_service.dart';
+import 'package:kphoto/presentation/blocs/gallery_bloc.dart';
+import 'package:kphoto/core/network/sync_engine.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 
-import 'package:k_photo/presentation/screens/firebase_login_screen.dart';
+import 'package:kphoto/presentation/screens/firebase_login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 

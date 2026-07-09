@@ -29,6 +29,26 @@ class Photos extends Table {
   TextColumn get focalLength => text().nullable()();
   TextColumn get flash => text().nullable()();
   TextColumn get lensModel => text().nullable()();
+  TextColumn get keywords => text().nullable()();
+  TextColumn get people => text().nullable()(); // Namen van personen gescheiden door komma's
+}
+
+class Persons extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().withLength(min: 1, max: 100)();
+  TextColumn get faceSamplePath => text().nullable()(); // Pad naar een kleine uitsnede van het gezicht
+}
+
+class DetectedFaces extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get photoId => integer().references(Photos, #id)();
+  IntColumn get personId => integer().nullable().references(Persons, #id)();
+  RealColumn get x => real()();
+  RealColumn get y => real()();
+  RealColumn get width => real()();
+  RealColumn get height => real()();
+  TextColumn get faceThumbnailPath => text().nullable()();
+  TextColumn get embedding => text().nullable()(); // JSON array van doubles
 }
 
 class Albums extends Table {
@@ -54,12 +74,12 @@ class TagsConverter extends TypeConverter<List<String>, String> {
   String toSql(List<String> value) => value.join(',');
 }
 
-@DriftDatabase(tables: [Photos, Albums, AlbumPhotos])
+@DriftDatabase(tables: [Photos, Albums, AlbumPhotos, Persons, DetectedFaces])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration {
@@ -93,6 +113,19 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(photos, photos.flash);
           await m.addColumn(photos, photos.lensModel);
         }
+        if (from < 7) {
+          await m.addColumn(photos, photos.keywords);
+        }
+        if (from < 8) {
+          await m.addColumn(photos, photos.people);
+        }
+        if (from < 9) {
+          await m.createTable(persons);
+          await m.createTable(detectedFaces);
+        }
+        if (from < 10) {
+          await m.addColumn(detectedFaces, detectedFaces.embedding);
+        }
       },
     );
   }
@@ -109,7 +142,9 @@ class AppDatabase extends _$AppDatabase {
       ..where((t) => 
         t.fileName.lower().contains(lowerQuery) | 
         t.aiTags.lower().contains(lowerQuery) | 
-        t.locationName.lower().contains(lowerQuery)
+        t.locationName.lower().contains(lowerQuery) |
+        t.keywords.lower().contains(lowerQuery) |
+        t.people.lower().contains(lowerQuery)
       )
       ..orderBy([(t) => OrderingTerm(expression: t.dateTaken, mode: OrderingMode.desc)]))
       .get().then((results) {
@@ -129,13 +164,9 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future updatePhotoTags(int id, List<String> tags) async {
-    // Haal eerst bestaande tags op om dubbelen te voorkomen en info te behouden
     final photo = await (select(photos)..where((t) => t.id.equals(id))).getSingleOrNull();
     final Set<String> allTags = photo != null ? Set<String>.from(photo.aiTags) : {};
-    
-    // Voeg nieuwe tags toe (geschoond)
     allTags.addAll(tags.map((t) => t.trim().toLowerCase()).where((t) => t.length > 1));
-    
     return (update(photos)..where((t) => t.id.equals(id))).write(
       PhotosCompanion(aiTags: Value(allTags.toList())),
     );
@@ -145,6 +176,8 @@ class AppDatabase extends _$AppDatabase {
     await delete(photos).go();
     await delete(albums).go();
     await delete(albumPhotos).go();
+    await delete(persons).go();
+    await delete(detectedFaces).go();
   }
 
   Future toggleFavorite(int id, bool isFavorite) {
@@ -154,7 +187,6 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> deletePhoto(Photo photo) async {
-    // Verwijder lokale bestanden
     if (photo.localThumbnailPath != null) {
       final file = File(photo.localThumbnailPath!);
       if (await file.exists()) await file.delete();
@@ -163,11 +195,8 @@ class AppDatabase extends _$AppDatabase {
       final file = File(photo.localHighResPath!);
       if (await file.exists()) await file.delete();
     }
-
-    // Verwijder uit album relaties
     await (delete(albumPhotos)..where((t) => t.photoId.equals(photo.id))).go();
-    
-    // Verwijder uit database
+    await (delete(detectedFaces)..where((t) => t.photoId.equals(photo.id))).go();
     await (delete(photos)..where((t) => t.id.equals(photo.id))).go();
     debugPrint('Database: Foto ${photo.id} verwijderd.');
   }
@@ -177,6 +206,40 @@ class AppDatabase extends _$AppDatabase {
       ..where((t) => t.isFavorite.equals(true))
       ..orderBy([(t) => OrderingTerm(expression: t.dateTaken, mode: OrderingMode.desc)]))
       .get();
+  }
+
+  // Person & Face methods
+  Future<int> getOrCreatePerson(String name, {String? faceSamplePath}) async {
+    final existing = await (select(persons)..where((t) => t.name.equals(name))).getSingleOrNull();
+    if (existing != null) return existing.id;
+
+    return into(persons).insert(PersonsCompanion.insert(
+      name: name,
+      faceSamplePath: Value(faceSamplePath),
+    ));
+  }
+
+  Future<List<Person>> getAllPersons() => select(persons).get();
+
+  Future<void> addDetectedFace(DetectedFacesCompanion face) => into(detectedFaces).insert(face);
+
+  Future<List<DetectedFace>> getFacesForPhoto(int photoId) {
+    return (select(detectedFaces)..where((t) => t.photoId.equals(photoId))).get();
+  }
+
+  Future<void> assignPersonToFace(int faceId, int personId) {
+    return (update(detectedFaces)..where((t) => t.id.equals(faceId))).write(
+      DetectedFacesCompanion(personId: Value(personId)),
+    );
+  }
+
+  Future<List<Photo>> getPhotosForPerson(int personId) async {
+    final query = select(photos).join([
+      innerJoin(detectedFaces, detectedFaces.photoId.equalsExp(photos.id)),
+    ]) ..where(detectedFaces.personId.equals(personId));
+    
+    final rows = await query.get();
+    return rows.map((row) => row.readTable(photos)).toList();
   }
 
   // Album methods

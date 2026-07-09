@@ -17,6 +17,18 @@ subprojects {
 }
 
 subprojects {
+    configurations.all {
+        resolutionStrategy {
+            force("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
+            force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.24")
+            force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.24")
+            force("org.jetbrains.kotlin:kotlin-stdlib-common:1.9.24")
+            force("com.google.maps.android:android-maps-utils:3.8.2")
+        }
+    }
+}
+
+subprojects {
     afterEvaluate {
         val project = this
         if (project.hasProperty("android")) {

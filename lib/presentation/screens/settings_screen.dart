@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:k_photo/core/network/auth_repository.dart';
-import 'package:k_photo/presentation/blocs/gallery_bloc.dart';
+import 'package:kphoto/core/network/auth_repository.dart';
+import 'package:kphoto/presentation/blocs/gallery_bloc.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:io';
 
-import 'package:k_photo/presentation/screens/folder_browser_screen.dart';
-import 'package:k_photo/presentation/screens/firebase_login_screen.dart';
-import 'package:k_photo/core/services/ai_tagging_service.dart';
-import 'package:k_photo/core/services/biometric_service.dart';
+import 'package:kphoto/presentation/screens/folder_browser_screen.dart';
+import 'package:kphoto/presentation/screens/firebase_login_screen.dart';
+import 'package:kphoto/core/services/ai_tagging_service.dart';
+import 'package:kphoto/core/services/biometric_service.dart';
+
+import 'package:kphoto/presentation/screens/trash_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -251,6 +253,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const Text('Opslagbeheer', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
                   ListTile(
+                    leading: const Icon(Icons.delete_outline),
+                    title: const Text('Prullenbak'),
+                    subtitle: const Text('Bekijk en herstel verwijderde items'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TrashScreen())),
+                    tileColor: Colors.red.withOpacity(0.05),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  const SizedBox(height: 8),
+                  ListTile(
                     leading: const Icon(Icons.cleaning_services),
                     title: const Text('Cache legen'),
                     subtitle: const Text('Verwijder lokaal gedownloade grote foto\'s'),
@@ -279,25 +291,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       subtitle: Text('Zorg dat je FaceID of een vingerafdruk hebt ingesteld op je toestel.'),
                     ),
                   const SizedBox(height: 16),
-                  ListTile(
-                    leading: const Icon(Icons.auto_awesome),
-                    title: const Text('AI Tags opnieuw scannen'),
-                    subtitle: const Text('Werk je zoekindex bij met de nieuwste termen'),
-                    onTap: () async {
-                      if (!mounted) return;
-                      final galleryBloc = BlocProvider.of<GalleryBloc>(context);
-                      final db = galleryBloc.db;
-                      // Haal API direct uit de syncEngine van de Bloc
-                      final api = galleryBloc.syncEngine?.apiService;
+                  BlocBuilder<GalleryBloc, GalleryState>(
+                    builder: (context, state) {
+                      final isAiScanning = state.isAiScanning;
+                      final aiScanProgress = state.aiScanTotal > 0 ? state.aiScanCurrent / state.aiScanTotal : 0.0;
                       
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('AI re-scan gestart op de achtergrond...')));
-                      
-                      final aiService = AITaggingService(db, api);
-                      await aiService.processPendingPhotos(forceAll: true);
-
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('AI re-scan voltooid!')));
-                      }
+                      return ListTile(
+                        leading: isAiScanning 
+                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.auto_awesome),
+                        title: const Text('AI Tags opnieuw scannen'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Werk je zoekindex bij met de nieuwste termen'),
+                            if (isAiScanning) ...[
+                              const SizedBox(height: 8),
+                              LinearProgressIndicator(value: aiScanProgress),
+                              const SizedBox(height: 4),
+                              Text('${state.aiScanCurrent} van ${state.aiScanTotal} foto\'s verwerkt', style: const TextStyle(fontSize: 11)),
+                            ],
+                          ],
+                        ),
+                        onTap: isAiScanning ? null : () {
+                          context.read<GalleryBloc>().add(const StartAiScan(forceAll: true));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('AI re-scan gestart op de achtergrond...')),
+                          );
+                        },
+                      );
                     },
                   ),
                   const SizedBox(height: 32),

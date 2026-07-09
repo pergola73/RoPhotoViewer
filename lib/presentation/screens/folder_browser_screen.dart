@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:k_photo/core/network/kdrive_api_service.dart';
+import 'package:kphoto/core/network/kdrive_api_service.dart';
 
 class FolderBrowserScreen extends StatefulWidget {
   final String driveId;

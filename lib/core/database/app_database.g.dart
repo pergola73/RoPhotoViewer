@@ -70,8 +70,14 @@ late final GeneratedColumn<String> flash = GeneratedColumn<String>('flash', alia
 static const VerificationMeta _lensModelMeta = const VerificationMeta('lensModel');
 @override
 late final GeneratedColumn<String> lensModel = GeneratedColumn<String>('lens_model', aliasedName, true, type: DriftSqlType.string, requiredDuringInsert: false);
+static const VerificationMeta _keywordsMeta = const VerificationMeta('keywords');
 @override
-List<GeneratedColumn> get $columns => [id, fileName, kdrivePath, dateTaken, localThumbnailPath, localHighResPath, remoteThumbnailUrl, aiTags, isFavorite, locationName, latitude, longitude, mediaType, duration, cameraModel, exposureTime, fNumber, iso, focalLength, flash, lensModel];
+late final GeneratedColumn<String> keywords = GeneratedColumn<String>('keywords', aliasedName, true, type: DriftSqlType.string, requiredDuringInsert: false);
+static const VerificationMeta _peopleMeta = const VerificationMeta('people');
+@override
+late final GeneratedColumn<String> people = GeneratedColumn<String>('people', aliasedName, true, type: DriftSqlType.string, requiredDuringInsert: false);
+@override
+List<GeneratedColumn> get $columns => [id, fileName, kdrivePath, dateTaken, localThumbnailPath, localHighResPath, remoteThumbnailUrl, aiTags, isFavorite, locationName, latitude, longitude, mediaType, duration, cameraModel, exposureTime, fNumber, iso, focalLength, flash, lensModel, keywords, people];
 @override
 String get aliasedName => _alias ?? actualTableName;
 @override
@@ -110,12 +116,14 @@ context.handle(_fNumberMeta, fNumber.isAcceptableOrUnknown(data['f_number']!, _f
 context.handle(_isoMeta, iso.isAcceptableOrUnknown(data['iso']!, _isoMeta));}if (data.containsKey('focal_length')) {
 context.handle(_focalLengthMeta, focalLength.isAcceptableOrUnknown(data['focal_length']!, _focalLengthMeta));}if (data.containsKey('flash')) {
 context.handle(_flashMeta, flash.isAcceptableOrUnknown(data['flash']!, _flashMeta));}if (data.containsKey('lens_model')) {
-context.handle(_lensModelMeta, lensModel.isAcceptableOrUnknown(data['lens_model']!, _lensModelMeta));}return context;
+context.handle(_lensModelMeta, lensModel.isAcceptableOrUnknown(data['lens_model']!, _lensModelMeta));}if (data.containsKey('keywords')) {
+context.handle(_keywordsMeta, keywords.isAcceptableOrUnknown(data['keywords']!, _keywordsMeta));}if (data.containsKey('people')) {
+context.handle(_peopleMeta, people.isAcceptableOrUnknown(data['people']!, _peopleMeta));}return context;
 }
 @override
 Set<GeneratedColumn> get $primaryKey => {id};
 @override Photo map(Map<String, dynamic> data, {String? tablePrefix})  {
-final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';return Photo(id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!, fileName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}file_name'])!, kdrivePath: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}kdrive_path'])!, dateTaken: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}date_taken'])!, localThumbnailPath: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}local_thumbnail_path']), localHighResPath: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}local_high_res_path']), remoteThumbnailUrl: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}remote_thumbnail_url']), aiTags: $PhotosTable.$converteraiTags.fromSql(attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}ai_tags'])!), isFavorite: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}is_favorite'])!, locationName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}location_name']), latitude: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}latitude']), longitude: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}longitude']), mediaType: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}media_type'])!, duration: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}duration']), cameraModel: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}camera_model']), exposureTime: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}exposure_time']), fNumber: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}f_number']), iso: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}iso']), focalLength: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}focal_length']), flash: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}flash']), lensModel: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}lens_model']), );
+final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';return Photo(id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!, fileName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}file_name'])!, kdrivePath: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}kdrive_path'])!, dateTaken: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}date_taken'])!, localThumbnailPath: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}local_thumbnail_path']), localHighResPath: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}local_high_res_path']), remoteThumbnailUrl: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}remote_thumbnail_url']), aiTags: $PhotosTable.$converteraiTags.fromSql(attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}ai_tags'])!), isFavorite: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}is_favorite'])!, locationName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}location_name']), latitude: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}latitude']), longitude: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}longitude']), mediaType: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}media_type'])!, duration: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}duration']), cameraModel: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}camera_model']), exposureTime: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}exposure_time']), fNumber: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}f_number']), iso: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}iso']), focalLength: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}focal_length']), flash: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}flash']), lensModel: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}lens_model']), keywords: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}keywords']), people: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}people']), );
 }
 @override
 $PhotosTable createAlias(String alias) {
@@ -142,7 +150,9 @@ final int? iso;
 final String? focalLength;
 final String? flash;
 final String? lensModel;
-const Photo({required this.id, required this.fileName, required this.kdrivePath, required this.dateTaken, this.localThumbnailPath, this.localHighResPath, this.remoteThumbnailUrl, required this.aiTags, required this.isFavorite, this.locationName, this.latitude, this.longitude, required this.mediaType, this.duration, this.cameraModel, this.exposureTime, this.fNumber, this.iso, this.focalLength, this.flash, this.lensModel});@override
+final String? keywords;
+final String? people;
+const Photo({required this.id, required this.fileName, required this.kdrivePath, required this.dateTaken, this.localThumbnailPath, this.localHighResPath, this.remoteThumbnailUrl, required this.aiTags, required this.isFavorite, this.locationName, this.latitude, this.longitude, required this.mediaType, this.duration, this.cameraModel, this.exposureTime, this.fNumber, this.iso, this.focalLength, this.flash, this.lensModel, this.keywords, this.people});@override
 Map<String, Expression> toColumns(bool nullToAbsent) {
 final map = <String, Expression> {};map['id'] = Variable<int>(id);
 map['file_name'] = Variable<String>(fileName);
@@ -165,26 +175,28 @@ if (!nullToAbsent || duration != null){map['duration'] = Variable<int>(duration)
 }if (!nullToAbsent || focalLength != null){map['focal_length'] = Variable<String>(focalLength);
 }if (!nullToAbsent || flash != null){map['flash'] = Variable<String>(flash);
 }if (!nullToAbsent || lensModel != null){map['lens_model'] = Variable<String>(lensModel);
+}if (!nullToAbsent || keywords != null){map['keywords'] = Variable<String>(keywords);
+}if (!nullToAbsent || people != null){map['people'] = Variable<String>(people);
 }return map; 
 }
 PhotosCompanion toCompanion(bool nullToAbsent) {
-return PhotosCompanion(id: Value(id),fileName: Value(fileName),kdrivePath: Value(kdrivePath),dateTaken: Value(dateTaken),localThumbnailPath: localThumbnailPath == null && nullToAbsent ? const Value.absent() : Value(localThumbnailPath),localHighResPath: localHighResPath == null && nullToAbsent ? const Value.absent() : Value(localHighResPath),remoteThumbnailUrl: remoteThumbnailUrl == null && nullToAbsent ? const Value.absent() : Value(remoteThumbnailUrl),aiTags: Value(aiTags),isFavorite: Value(isFavorite),locationName: locationName == null && nullToAbsent ? const Value.absent() : Value(locationName),latitude: latitude == null && nullToAbsent ? const Value.absent() : Value(latitude),longitude: longitude == null && nullToAbsent ? const Value.absent() : Value(longitude),mediaType: Value(mediaType),duration: duration == null && nullToAbsent ? const Value.absent() : Value(duration),cameraModel: cameraModel == null && nullToAbsent ? const Value.absent() : Value(cameraModel),exposureTime: exposureTime == null && nullToAbsent ? const Value.absent() : Value(exposureTime),fNumber: fNumber == null && nullToAbsent ? const Value.absent() : Value(fNumber),iso: iso == null && nullToAbsent ? const Value.absent() : Value(iso),focalLength: focalLength == null && nullToAbsent ? const Value.absent() : Value(focalLength),flash: flash == null && nullToAbsent ? const Value.absent() : Value(flash),lensModel: lensModel == null && nullToAbsent ? const Value.absent() : Value(lensModel),);
+return PhotosCompanion(id: Value(id),fileName: Value(fileName),kdrivePath: Value(kdrivePath),dateTaken: Value(dateTaken),localThumbnailPath: localThumbnailPath == null && nullToAbsent ? const Value.absent() : Value(localThumbnailPath),localHighResPath: localHighResPath == null && nullToAbsent ? const Value.absent() : Value(localHighResPath),remoteThumbnailUrl: remoteThumbnailUrl == null && nullToAbsent ? const Value.absent() : Value(remoteThumbnailUrl),aiTags: Value(aiTags),isFavorite: Value(isFavorite),locationName: locationName == null && nullToAbsent ? const Value.absent() : Value(locationName),latitude: latitude == null && nullToAbsent ? const Value.absent() : Value(latitude),longitude: longitude == null && nullToAbsent ? const Value.absent() : Value(longitude),mediaType: Value(mediaType),duration: duration == null && nullToAbsent ? const Value.absent() : Value(duration),cameraModel: cameraModel == null && nullToAbsent ? const Value.absent() : Value(cameraModel),exposureTime: exposureTime == null && nullToAbsent ? const Value.absent() : Value(exposureTime),fNumber: fNumber == null && nullToAbsent ? const Value.absent() : Value(fNumber),iso: iso == null && nullToAbsent ? const Value.absent() : Value(iso),focalLength: focalLength == null && nullToAbsent ? const Value.absent() : Value(focalLength),flash: flash == null && nullToAbsent ? const Value.absent() : Value(flash),lensModel: lensModel == null && nullToAbsent ? const Value.absent() : Value(lensModel),keywords: keywords == null && nullToAbsent ? const Value.absent() : Value(keywords),people: people == null && nullToAbsent ? const Value.absent() : Value(people),);
 }
 factory Photo.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
 serializer ??= driftRuntimeOptions.defaultSerializer;
-return Photo(id: serializer.fromJson<int>(json['id']),fileName: serializer.fromJson<String>(json['fileName']),kdrivePath: serializer.fromJson<String>(json['kdrivePath']),dateTaken: serializer.fromJson<DateTime>(json['dateTaken']),localThumbnailPath: serializer.fromJson<String?>(json['localThumbnailPath']),localHighResPath: serializer.fromJson<String?>(json['localHighResPath']),remoteThumbnailUrl: serializer.fromJson<String?>(json['remoteThumbnailUrl']),aiTags: serializer.fromJson<List<String>>(json['aiTags']),isFavorite: serializer.fromJson<bool>(json['isFavorite']),locationName: serializer.fromJson<String?>(json['locationName']),latitude: serializer.fromJson<double?>(json['latitude']),longitude: serializer.fromJson<double?>(json['longitude']),mediaType: serializer.fromJson<String>(json['mediaType']),duration: serializer.fromJson<int?>(json['duration']),cameraModel: serializer.fromJson<String?>(json['cameraModel']),exposureTime: serializer.fromJson<String?>(json['exposureTime']),fNumber: serializer.fromJson<String?>(json['fNumber']),iso: serializer.fromJson<int?>(json['iso']),focalLength: serializer.fromJson<String?>(json['focalLength']),flash: serializer.fromJson<String?>(json['flash']),lensModel: serializer.fromJson<String?>(json['lensModel']),);}
+return Photo(id: serializer.fromJson<int>(json['id']),fileName: serializer.fromJson<String>(json['fileName']),kdrivePath: serializer.fromJson<String>(json['kdrivePath']),dateTaken: serializer.fromJson<DateTime>(json['dateTaken']),localThumbnailPath: serializer.fromJson<String?>(json['localThumbnailPath']),localHighResPath: serializer.fromJson<String?>(json['localHighResPath']),remoteThumbnailUrl: serializer.fromJson<String?>(json['remoteThumbnailUrl']),aiTags: serializer.fromJson<List<String>>(json['aiTags']),isFavorite: serializer.fromJson<bool>(json['isFavorite']),locationName: serializer.fromJson<String?>(json['locationName']),latitude: serializer.fromJson<double?>(json['latitude']),longitude: serializer.fromJson<double?>(json['longitude']),mediaType: serializer.fromJson<String>(json['mediaType']),duration: serializer.fromJson<int?>(json['duration']),cameraModel: serializer.fromJson<String?>(json['cameraModel']),exposureTime: serializer.fromJson<String?>(json['exposureTime']),fNumber: serializer.fromJson<String?>(json['fNumber']),iso: serializer.fromJson<int?>(json['iso']),focalLength: serializer.fromJson<String?>(json['focalLength']),flash: serializer.fromJson<String?>(json['flash']),lensModel: serializer.fromJson<String?>(json['lensModel']),keywords: serializer.fromJson<String?>(json['keywords']),people: serializer.fromJson<String?>(json['people']),);}
 @override Map<String, dynamic> toJson({ValueSerializer? serializer}) {
 serializer ??= driftRuntimeOptions.defaultSerializer;
 return <String, dynamic>{
-'id': serializer.toJson<int>(id),'fileName': serializer.toJson<String>(fileName),'kdrivePath': serializer.toJson<String>(kdrivePath),'dateTaken': serializer.toJson<DateTime>(dateTaken),'localThumbnailPath': serializer.toJson<String?>(localThumbnailPath),'localHighResPath': serializer.toJson<String?>(localHighResPath),'remoteThumbnailUrl': serializer.toJson<String?>(remoteThumbnailUrl),'aiTags': serializer.toJson<List<String>>(aiTags),'isFavorite': serializer.toJson<bool>(isFavorite),'locationName': serializer.toJson<String?>(locationName),'latitude': serializer.toJson<double?>(latitude),'longitude': serializer.toJson<double?>(longitude),'mediaType': serializer.toJson<String>(mediaType),'duration': serializer.toJson<int?>(duration),'cameraModel': serializer.toJson<String?>(cameraModel),'exposureTime': serializer.toJson<String?>(exposureTime),'fNumber': serializer.toJson<String?>(fNumber),'iso': serializer.toJson<int?>(iso),'focalLength': serializer.toJson<String?>(focalLength),'flash': serializer.toJson<String?>(flash),'lensModel': serializer.toJson<String?>(lensModel),};}Photo copyWith({int? id,String? fileName,String? kdrivePath,DateTime? dateTaken,Value<String?> localThumbnailPath = const Value.absent(),Value<String?> localHighResPath = const Value.absent(),Value<String?> remoteThumbnailUrl = const Value.absent(),List<String>? aiTags,bool? isFavorite,Value<String?> locationName = const Value.absent(),Value<double?> latitude = const Value.absent(),Value<double?> longitude = const Value.absent(),String? mediaType,Value<int?> duration = const Value.absent(),Value<String?> cameraModel = const Value.absent(),Value<String?> exposureTime = const Value.absent(),Value<String?> fNumber = const Value.absent(),Value<int?> iso = const Value.absent(),Value<String?> focalLength = const Value.absent(),Value<String?> flash = const Value.absent(),Value<String?> lensModel = const Value.absent()}) => Photo(id: id ?? this.id,fileName: fileName ?? this.fileName,kdrivePath: kdrivePath ?? this.kdrivePath,dateTaken: dateTaken ?? this.dateTaken,localThumbnailPath: localThumbnailPath.present ? localThumbnailPath.value : this.localThumbnailPath,localHighResPath: localHighResPath.present ? localHighResPath.value : this.localHighResPath,remoteThumbnailUrl: remoteThumbnailUrl.present ? remoteThumbnailUrl.value : this.remoteThumbnailUrl,aiTags: aiTags ?? this.aiTags,isFavorite: isFavorite ?? this.isFavorite,locationName: locationName.present ? locationName.value : this.locationName,latitude: latitude.present ? latitude.value : this.latitude,longitude: longitude.present ? longitude.value : this.longitude,mediaType: mediaType ?? this.mediaType,duration: duration.present ? duration.value : this.duration,cameraModel: cameraModel.present ? cameraModel.value : this.cameraModel,exposureTime: exposureTime.present ? exposureTime.value : this.exposureTime,fNumber: fNumber.present ? fNumber.value : this.fNumber,iso: iso.present ? iso.value : this.iso,focalLength: focalLength.present ? focalLength.value : this.focalLength,flash: flash.present ? flash.value : this.flash,lensModel: lensModel.present ? lensModel.value : this.lensModel,);Photo copyWithCompanion(PhotosCompanion data) {
+'id': serializer.toJson<int>(id),'fileName': serializer.toJson<String>(fileName),'kdrivePath': serializer.toJson<String>(kdrivePath),'dateTaken': serializer.toJson<DateTime>(dateTaken),'localThumbnailPath': serializer.toJson<String?>(localThumbnailPath),'localHighResPath': serializer.toJson<String?>(localHighResPath),'remoteThumbnailUrl': serializer.toJson<String?>(remoteThumbnailUrl),'aiTags': serializer.toJson<List<String>>(aiTags),'isFavorite': serializer.toJson<bool>(isFavorite),'locationName': serializer.toJson<String?>(locationName),'latitude': serializer.toJson<double?>(latitude),'longitude': serializer.toJson<double?>(longitude),'mediaType': serializer.toJson<String>(mediaType),'duration': serializer.toJson<int?>(duration),'cameraModel': serializer.toJson<String?>(cameraModel),'exposureTime': serializer.toJson<String?>(exposureTime),'fNumber': serializer.toJson<String?>(fNumber),'iso': serializer.toJson<int?>(iso),'focalLength': serializer.toJson<String?>(focalLength),'flash': serializer.toJson<String?>(flash),'lensModel': serializer.toJson<String?>(lensModel),'keywords': serializer.toJson<String?>(keywords),'people': serializer.toJson<String?>(people),};}Photo copyWith({int? id,String? fileName,String? kdrivePath,DateTime? dateTaken,Value<String?> localThumbnailPath = const Value.absent(),Value<String?> localHighResPath = const Value.absent(),Value<String?> remoteThumbnailUrl = const Value.absent(),List<String>? aiTags,bool? isFavorite,Value<String?> locationName = const Value.absent(),Value<double?> latitude = const Value.absent(),Value<double?> longitude = const Value.absent(),String? mediaType,Value<int?> duration = const Value.absent(),Value<String?> cameraModel = const Value.absent(),Value<String?> exposureTime = const Value.absent(),Value<String?> fNumber = const Value.absent(),Value<int?> iso = const Value.absent(),Value<String?> focalLength = const Value.absent(),Value<String?> flash = const Value.absent(),Value<String?> lensModel = const Value.absent(),Value<String?> keywords = const Value.absent(),Value<String?> people = const Value.absent()}) => Photo(id: id ?? this.id,fileName: fileName ?? this.fileName,kdrivePath: kdrivePath ?? this.kdrivePath,dateTaken: dateTaken ?? this.dateTaken,localThumbnailPath: localThumbnailPath.present ? localThumbnailPath.value : this.localThumbnailPath,localHighResPath: localHighResPath.present ? localHighResPath.value : this.localHighResPath,remoteThumbnailUrl: remoteThumbnailUrl.present ? remoteThumbnailUrl.value : this.remoteThumbnailUrl,aiTags: aiTags ?? this.aiTags,isFavorite: isFavorite ?? this.isFavorite,locationName: locationName.present ? locationName.value : this.locationName,latitude: latitude.present ? latitude.value : this.latitude,longitude: longitude.present ? longitude.value : this.longitude,mediaType: mediaType ?? this.mediaType,duration: duration.present ? duration.value : this.duration,cameraModel: cameraModel.present ? cameraModel.value : this.cameraModel,exposureTime: exposureTime.present ? exposureTime.value : this.exposureTime,fNumber: fNumber.present ? fNumber.value : this.fNumber,iso: iso.present ? iso.value : this.iso,focalLength: focalLength.present ? focalLength.value : this.focalLength,flash: flash.present ? flash.value : this.flash,lensModel: lensModel.present ? lensModel.value : this.lensModel,keywords: keywords.present ? keywords.value : this.keywords,people: people.present ? people.value : this.people,);Photo copyWithCompanion(PhotosCompanion data) {
 return Photo(
-id: data.id.present ? data.id.value : this.id,fileName: data.fileName.present ? data.fileName.value : this.fileName,kdrivePath: data.kdrivePath.present ? data.kdrivePath.value : this.kdrivePath,dateTaken: data.dateTaken.present ? data.dateTaken.value : this.dateTaken,localThumbnailPath: data.localThumbnailPath.present ? data.localThumbnailPath.value : this.localThumbnailPath,localHighResPath: data.localHighResPath.present ? data.localHighResPath.value : this.localHighResPath,remoteThumbnailUrl: data.remoteThumbnailUrl.present ? data.remoteThumbnailUrl.value : this.remoteThumbnailUrl,aiTags: data.aiTags.present ? data.aiTags.value : this.aiTags,isFavorite: data.isFavorite.present ? data.isFavorite.value : this.isFavorite,locationName: data.locationName.present ? data.locationName.value : this.locationName,latitude: data.latitude.present ? data.latitude.value : this.latitude,longitude: data.longitude.present ? data.longitude.value : this.longitude,mediaType: data.mediaType.present ? data.mediaType.value : this.mediaType,duration: data.duration.present ? data.duration.value : this.duration,cameraModel: data.cameraModel.present ? data.cameraModel.value : this.cameraModel,exposureTime: data.exposureTime.present ? data.exposureTime.value : this.exposureTime,fNumber: data.fNumber.present ? data.fNumber.value : this.fNumber,iso: data.iso.present ? data.iso.value : this.iso,focalLength: data.focalLength.present ? data.focalLength.value : this.focalLength,flash: data.flash.present ? data.flash.value : this.flash,lensModel: data.lensModel.present ? data.lensModel.value : this.lensModel,);
+id: data.id.present ? data.id.value : this.id,fileName: data.fileName.present ? data.fileName.value : this.fileName,kdrivePath: data.kdrivePath.present ? data.kdrivePath.value : this.kdrivePath,dateTaken: data.dateTaken.present ? data.dateTaken.value : this.dateTaken,localThumbnailPath: data.localThumbnailPath.present ? data.localThumbnailPath.value : this.localThumbnailPath,localHighResPath: data.localHighResPath.present ? data.localHighResPath.value : this.localHighResPath,remoteThumbnailUrl: data.remoteThumbnailUrl.present ? data.remoteThumbnailUrl.value : this.remoteThumbnailUrl,aiTags: data.aiTags.present ? data.aiTags.value : this.aiTags,isFavorite: data.isFavorite.present ? data.isFavorite.value : this.isFavorite,locationName: data.locationName.present ? data.locationName.value : this.locationName,latitude: data.latitude.present ? data.latitude.value : this.latitude,longitude: data.longitude.present ? data.longitude.value : this.longitude,mediaType: data.mediaType.present ? data.mediaType.value : this.mediaType,duration: data.duration.present ? data.duration.value : this.duration,cameraModel: data.cameraModel.present ? data.cameraModel.value : this.cameraModel,exposureTime: data.exposureTime.present ? data.exposureTime.value : this.exposureTime,fNumber: data.fNumber.present ? data.fNumber.value : this.fNumber,iso: data.iso.present ? data.iso.value : this.iso,focalLength: data.focalLength.present ? data.focalLength.value : this.focalLength,flash: data.flash.present ? data.flash.value : this.flash,lensModel: data.lensModel.present ? data.lensModel.value : this.lensModel,keywords: data.keywords.present ? data.keywords.value : this.keywords,people: data.people.present ? data.people.value : this.people,);
 }
 @override
-String toString() {return (StringBuffer('Photo(')..write('id: $id, ')..write('fileName: $fileName, ')..write('kdrivePath: $kdrivePath, ')..write('dateTaken: $dateTaken, ')..write('localThumbnailPath: $localThumbnailPath, ')..write('localHighResPath: $localHighResPath, ')..write('remoteThumbnailUrl: $remoteThumbnailUrl, ')..write('aiTags: $aiTags, ')..write('isFavorite: $isFavorite, ')..write('locationName: $locationName, ')..write('latitude: $latitude, ')..write('longitude: $longitude, ')..write('mediaType: $mediaType, ')..write('duration: $duration, ')..write('cameraModel: $cameraModel, ')..write('exposureTime: $exposureTime, ')..write('fNumber: $fNumber, ')..write('iso: $iso, ')..write('focalLength: $focalLength, ')..write('flash: $flash, ')..write('lensModel: $lensModel')..write(')')).toString();}
+String toString() {return (StringBuffer('Photo(')..write('id: $id, ')..write('fileName: $fileName, ')..write('kdrivePath: $kdrivePath, ')..write('dateTaken: $dateTaken, ')..write('localThumbnailPath: $localThumbnailPath, ')..write('localHighResPath: $localHighResPath, ')..write('remoteThumbnailUrl: $remoteThumbnailUrl, ')..write('aiTags: $aiTags, ')..write('isFavorite: $isFavorite, ')..write('locationName: $locationName, ')..write('latitude: $latitude, ')..write('longitude: $longitude, ')..write('mediaType: $mediaType, ')..write('duration: $duration, ')..write('cameraModel: $cameraModel, ')..write('exposureTime: $exposureTime, ')..write('fNumber: $fNumber, ')..write('iso: $iso, ')..write('focalLength: $focalLength, ')..write('flash: $flash, ')..write('lensModel: $lensModel, ')..write('keywords: $keywords, ')..write('people: $people')..write(')')).toString();}
 @override
- int get hashCode => Object.hashAll([id, fileName, kdrivePath, dateTaken, localThumbnailPath, localHighResPath, remoteThumbnailUrl, aiTags, isFavorite, locationName, latitude, longitude, mediaType, duration, cameraModel, exposureTime, fNumber, iso, focalLength, flash, lensModel]);@override
-bool operator ==(Object other) => identical(this, other) || (other is Photo && other.id == this.id && other.fileName == this.fileName && other.kdrivePath == this.kdrivePath && other.dateTaken == this.dateTaken && other.localThumbnailPath == this.localThumbnailPath && other.localHighResPath == this.localHighResPath && other.remoteThumbnailUrl == this.remoteThumbnailUrl && other.aiTags == this.aiTags && other.isFavorite == this.isFavorite && other.locationName == this.locationName && other.latitude == this.latitude && other.longitude == this.longitude && other.mediaType == this.mediaType && other.duration == this.duration && other.cameraModel == this.cameraModel && other.exposureTime == this.exposureTime && other.fNumber == this.fNumber && other.iso == this.iso && other.focalLength == this.focalLength && other.flash == this.flash && other.lensModel == this.lensModel);
+ int get hashCode => Object.hashAll([id, fileName, kdrivePath, dateTaken, localThumbnailPath, localHighResPath, remoteThumbnailUrl, aiTags, isFavorite, locationName, latitude, longitude, mediaType, duration, cameraModel, exposureTime, fNumber, iso, focalLength, flash, lensModel, keywords, people]);@override
+bool operator ==(Object other) => identical(this, other) || (other is Photo && other.id == this.id && other.fileName == this.fileName && other.kdrivePath == this.kdrivePath && other.dateTaken == this.dateTaken && other.localThumbnailPath == this.localThumbnailPath && other.localHighResPath == this.localHighResPath && other.remoteThumbnailUrl == this.remoteThumbnailUrl && other.aiTags == this.aiTags && other.isFavorite == this.isFavorite && other.locationName == this.locationName && other.latitude == this.latitude && other.longitude == this.longitude && other.mediaType == this.mediaType && other.duration == this.duration && other.cameraModel == this.cameraModel && other.exposureTime == this.exposureTime && other.fNumber == this.fNumber && other.iso == this.iso && other.focalLength == this.focalLength && other.flash == this.flash && other.lensModel == this.lensModel && other.keywords == this.keywords && other.people == this.people);
 }class PhotosCompanion extends UpdateCompanion<Photo> {
 final Value<int> id;
 final Value<String> fileName;
@@ -207,8 +219,10 @@ final Value<int?> iso;
 final Value<String?> focalLength;
 final Value<String?> flash;
 final Value<String?> lensModel;
-const PhotosCompanion({this.id = const Value.absent(),this.fileName = const Value.absent(),this.kdrivePath = const Value.absent(),this.dateTaken = const Value.absent(),this.localThumbnailPath = const Value.absent(),this.localHighResPath = const Value.absent(),this.remoteThumbnailUrl = const Value.absent(),this.aiTags = const Value.absent(),this.isFavorite = const Value.absent(),this.locationName = const Value.absent(),this.latitude = const Value.absent(),this.longitude = const Value.absent(),this.mediaType = const Value.absent(),this.duration = const Value.absent(),this.cameraModel = const Value.absent(),this.exposureTime = const Value.absent(),this.fNumber = const Value.absent(),this.iso = const Value.absent(),this.focalLength = const Value.absent(),this.flash = const Value.absent(),this.lensModel = const Value.absent(),});
-PhotosCompanion.insert({this.id = const Value.absent(),required String fileName,required String kdrivePath,required DateTime dateTaken,this.localThumbnailPath = const Value.absent(),this.localHighResPath = const Value.absent(),this.remoteThumbnailUrl = const Value.absent(),required List<String> aiTags,this.isFavorite = const Value.absent(),this.locationName = const Value.absent(),this.latitude = const Value.absent(),this.longitude = const Value.absent(),this.mediaType = const Value.absent(),this.duration = const Value.absent(),this.cameraModel = const Value.absent(),this.exposureTime = const Value.absent(),this.fNumber = const Value.absent(),this.iso = const Value.absent(),this.focalLength = const Value.absent(),this.flash = const Value.absent(),this.lensModel = const Value.absent(),}): fileName = Value(fileName), kdrivePath = Value(kdrivePath), dateTaken = Value(dateTaken), aiTags = Value(aiTags);
+final Value<String?> keywords;
+final Value<String?> people;
+const PhotosCompanion({this.id = const Value.absent(),this.fileName = const Value.absent(),this.kdrivePath = const Value.absent(),this.dateTaken = const Value.absent(),this.localThumbnailPath = const Value.absent(),this.localHighResPath = const Value.absent(),this.remoteThumbnailUrl = const Value.absent(),this.aiTags = const Value.absent(),this.isFavorite = const Value.absent(),this.locationName = const Value.absent(),this.latitude = const Value.absent(),this.longitude = const Value.absent(),this.mediaType = const Value.absent(),this.duration = const Value.absent(),this.cameraModel = const Value.absent(),this.exposureTime = const Value.absent(),this.fNumber = const Value.absent(),this.iso = const Value.absent(),this.focalLength = const Value.absent(),this.flash = const Value.absent(),this.lensModel = const Value.absent(),this.keywords = const Value.absent(),this.people = const Value.absent(),});
+PhotosCompanion.insert({this.id = const Value.absent(),required String fileName,required String kdrivePath,required DateTime dateTaken,this.localThumbnailPath = const Value.absent(),this.localHighResPath = const Value.absent(),this.remoteThumbnailUrl = const Value.absent(),required List<String> aiTags,this.isFavorite = const Value.absent(),this.locationName = const Value.absent(),this.latitude = const Value.absent(),this.longitude = const Value.absent(),this.mediaType = const Value.absent(),this.duration = const Value.absent(),this.cameraModel = const Value.absent(),this.exposureTime = const Value.absent(),this.fNumber = const Value.absent(),this.iso = const Value.absent(),this.focalLength = const Value.absent(),this.flash = const Value.absent(),this.lensModel = const Value.absent(),this.keywords = const Value.absent(),this.people = const Value.absent(),}): fileName = Value(fileName), kdrivePath = Value(kdrivePath), dateTaken = Value(dateTaken), aiTags = Value(aiTags);
 static Insertable<Photo> custom({Expression<int>? id, 
 Expression<String>? fileName, 
 Expression<String>? kdrivePath, 
@@ -230,10 +244,12 @@ Expression<int>? iso,
 Expression<String>? focalLength, 
 Expression<String>? flash, 
 Expression<String>? lensModel, 
+Expression<String>? keywords, 
+Expression<String>? people, 
 }) {
-return RawValuesInsertable({if (id != null)'id': id,if (fileName != null)'file_name': fileName,if (kdrivePath != null)'kdrive_path': kdrivePath,if (dateTaken != null)'date_taken': dateTaken,if (localThumbnailPath != null)'local_thumbnail_path': localThumbnailPath,if (localHighResPath != null)'local_high_res_path': localHighResPath,if (remoteThumbnailUrl != null)'remote_thumbnail_url': remoteThumbnailUrl,if (aiTags != null)'ai_tags': aiTags,if (isFavorite != null)'is_favorite': isFavorite,if (locationName != null)'location_name': locationName,if (latitude != null)'latitude': latitude,if (longitude != null)'longitude': longitude,if (mediaType != null)'media_type': mediaType,if (duration != null)'duration': duration,if (cameraModel != null)'camera_model': cameraModel,if (exposureTime != null)'exposure_time': exposureTime,if (fNumber != null)'f_number': fNumber,if (iso != null)'iso': iso,if (focalLength != null)'focal_length': focalLength,if (flash != null)'flash': flash,if (lensModel != null)'lens_model': lensModel,});
-}PhotosCompanion copyWith({Value<int>? id, Value<String>? fileName, Value<String>? kdrivePath, Value<DateTime>? dateTaken, Value<String?>? localThumbnailPath, Value<String?>? localHighResPath, Value<String?>? remoteThumbnailUrl, Value<List<String>>? aiTags, Value<bool>? isFavorite, Value<String?>? locationName, Value<double?>? latitude, Value<double?>? longitude, Value<String>? mediaType, Value<int?>? duration, Value<String?>? cameraModel, Value<String?>? exposureTime, Value<String?>? fNumber, Value<int?>? iso, Value<String?>? focalLength, Value<String?>? flash, Value<String?>? lensModel}) {
-return PhotosCompanion(id: id ?? this.id,fileName: fileName ?? this.fileName,kdrivePath: kdrivePath ?? this.kdrivePath,dateTaken: dateTaken ?? this.dateTaken,localThumbnailPath: localThumbnailPath ?? this.localThumbnailPath,localHighResPath: localHighResPath ?? this.localHighResPath,remoteThumbnailUrl: remoteThumbnailUrl ?? this.remoteThumbnailUrl,aiTags: aiTags ?? this.aiTags,isFavorite: isFavorite ?? this.isFavorite,locationName: locationName ?? this.locationName,latitude: latitude ?? this.latitude,longitude: longitude ?? this.longitude,mediaType: mediaType ?? this.mediaType,duration: duration ?? this.duration,cameraModel: cameraModel ?? this.cameraModel,exposureTime: exposureTime ?? this.exposureTime,fNumber: fNumber ?? this.fNumber,iso: iso ?? this.iso,focalLength: focalLength ?? this.focalLength,flash: flash ?? this.flash,lensModel: lensModel ?? this.lensModel,);
+return RawValuesInsertable({if (id != null)'id': id,if (fileName != null)'file_name': fileName,if (kdrivePath != null)'kdrive_path': kdrivePath,if (dateTaken != null)'date_taken': dateTaken,if (localThumbnailPath != null)'local_thumbnail_path': localThumbnailPath,if (localHighResPath != null)'local_high_res_path': localHighResPath,if (remoteThumbnailUrl != null)'remote_thumbnail_url': remoteThumbnailUrl,if (aiTags != null)'ai_tags': aiTags,if (isFavorite != null)'is_favorite': isFavorite,if (locationName != null)'location_name': locationName,if (latitude != null)'latitude': latitude,if (longitude != null)'longitude': longitude,if (mediaType != null)'media_type': mediaType,if (duration != null)'duration': duration,if (cameraModel != null)'camera_model': cameraModel,if (exposureTime != null)'exposure_time': exposureTime,if (fNumber != null)'f_number': fNumber,if (iso != null)'iso': iso,if (focalLength != null)'focal_length': focalLength,if (flash != null)'flash': flash,if (lensModel != null)'lens_model': lensModel,if (keywords != null)'keywords': keywords,if (people != null)'people': people,});
+}PhotosCompanion copyWith({Value<int>? id, Value<String>? fileName, Value<String>? kdrivePath, Value<DateTime>? dateTaken, Value<String?>? localThumbnailPath, Value<String?>? localHighResPath, Value<String?>? remoteThumbnailUrl, Value<List<String>>? aiTags, Value<bool>? isFavorite, Value<String?>? locationName, Value<double?>? latitude, Value<double?>? longitude, Value<String>? mediaType, Value<int?>? duration, Value<String?>? cameraModel, Value<String?>? exposureTime, Value<String?>? fNumber, Value<int?>? iso, Value<String?>? focalLength, Value<String?>? flash, Value<String?>? lensModel, Value<String?>? keywords, Value<String?>? people}) {
+return PhotosCompanion(id: id ?? this.id,fileName: fileName ?? this.fileName,kdrivePath: kdrivePath ?? this.kdrivePath,dateTaken: dateTaken ?? this.dateTaken,localThumbnailPath: localThumbnailPath ?? this.localThumbnailPath,localHighResPath: localHighResPath ?? this.localHighResPath,remoteThumbnailUrl: remoteThumbnailUrl ?? this.remoteThumbnailUrl,aiTags: aiTags ?? this.aiTags,isFavorite: isFavorite ?? this.isFavorite,locationName: locationName ?? this.locationName,latitude: latitude ?? this.latitude,longitude: longitude ?? this.longitude,mediaType: mediaType ?? this.mediaType,duration: duration ?? this.duration,cameraModel: cameraModel ?? this.cameraModel,exposureTime: exposureTime ?? this.exposureTime,fNumber: fNumber ?? this.fNumber,iso: iso ?? this.iso,focalLength: focalLength ?? this.focalLength,flash: flash ?? this.flash,lensModel: lensModel ?? this.lensModel,keywords: keywords ?? this.keywords,people: people ?? this.people,);
 }
 @override
 Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -279,10 +295,14 @@ if (flash.present) {
 map['flash'] = Variable<String>(flash.value);}
 if (lensModel.present) {
 map['lens_model'] = Variable<String>(lensModel.value);}
+if (keywords.present) {
+map['keywords'] = Variable<String>(keywords.value);}
+if (people.present) {
+map['people'] = Variable<String>(people.value);}
 return map; 
 }
 @override
-String toString() {return (StringBuffer('PhotosCompanion(')..write('id: $id, ')..write('fileName: $fileName, ')..write('kdrivePath: $kdrivePath, ')..write('dateTaken: $dateTaken, ')..write('localThumbnailPath: $localThumbnailPath, ')..write('localHighResPath: $localHighResPath, ')..write('remoteThumbnailUrl: $remoteThumbnailUrl, ')..write('aiTags: $aiTags, ')..write('isFavorite: $isFavorite, ')..write('locationName: $locationName, ')..write('latitude: $latitude, ')..write('longitude: $longitude, ')..write('mediaType: $mediaType, ')..write('duration: $duration, ')..write('cameraModel: $cameraModel, ')..write('exposureTime: $exposureTime, ')..write('fNumber: $fNumber, ')..write('iso: $iso, ')..write('focalLength: $focalLength, ')..write('flash: $flash, ')..write('lensModel: $lensModel')..write(')')).toString();}
+String toString() {return (StringBuffer('PhotosCompanion(')..write('id: $id, ')..write('fileName: $fileName, ')..write('kdrivePath: $kdrivePath, ')..write('dateTaken: $dateTaken, ')..write('localThumbnailPath: $localThumbnailPath, ')..write('localHighResPath: $localHighResPath, ')..write('remoteThumbnailUrl: $remoteThumbnailUrl, ')..write('aiTags: $aiTags, ')..write('isFavorite: $isFavorite, ')..write('locationName: $locationName, ')..write('latitude: $latitude, ')..write('longitude: $longitude, ')..write('mediaType: $mediaType, ')..write('duration: $duration, ')..write('cameraModel: $cameraModel, ')..write('exposureTime: $exposureTime, ')..write('fNumber: $fNumber, ')..write('iso: $iso, ')..write('focalLength: $focalLength, ')..write('flash: $flash, ')..write('lensModel: $lensModel, ')..write('keywords: $keywords, ')..write('people: $people')..write(')')).toString();}
 }
 class $AlbumsTable extends Albums with TableInfo<$AlbumsTable, Album>{
 @override final GeneratedDatabase attachedDatabase;
@@ -483,19 +503,285 @@ return map;
 @override
 String toString() {return (StringBuffer('AlbumPhotosCompanion(')..write('albumId: $albumId, ')..write('photoId: $photoId, ')..write('rowid: $rowid')..write(')')).toString();}
 }
+class $PersonsTable extends Persons with TableInfo<$PersonsTable, Person>{
+@override final GeneratedDatabase attachedDatabase;
+final String? _alias;
+$PersonsTable(this.attachedDatabase, [this._alias]);
+static const VerificationMeta _idMeta = const VerificationMeta('id');
+@override
+late final GeneratedColumn<int> id = GeneratedColumn<int>('id', aliasedName, false, hasAutoIncrement: true, type: DriftSqlType.int, requiredDuringInsert: false, defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+static const VerificationMeta _nameMeta = const VerificationMeta('name');
+@override
+late final GeneratedColumn<String> name = GeneratedColumn<String>('name', aliasedName, false, additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 1,maxTextLength: 100), type: DriftSqlType.string, requiredDuringInsert: true);
+static const VerificationMeta _faceSamplePathMeta = const VerificationMeta('faceSamplePath');
+@override
+late final GeneratedColumn<String> faceSamplePath = GeneratedColumn<String>('face_sample_path', aliasedName, true, type: DriftSqlType.string, requiredDuringInsert: false);
+@override
+List<GeneratedColumn> get $columns => [id, name, faceSamplePath];
+@override
+String get aliasedName => _alias ?? actualTableName;
+@override
+ String get actualTableName => $name;
+static const String $name = 'persons';
+@override
+VerificationContext validateIntegrity(Insertable<Person> instance, {bool isInserting = false}) {
+final context = VerificationContext();
+final data = instance.toColumns(true);
+if (data.containsKey('id')) {
+context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));}if (data.containsKey('name')) {
+context.handle(_nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));} else if (isInserting) {
+context.missing(_nameMeta);
+}
+if (data.containsKey('face_sample_path')) {
+context.handle(_faceSamplePathMeta, faceSamplePath.isAcceptableOrUnknown(data['face_sample_path']!, _faceSamplePathMeta));}return context;
+}
+@override
+Set<GeneratedColumn> get $primaryKey => {id};
+@override Person map(Map<String, dynamic> data, {String? tablePrefix})  {
+final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';return Person(id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!, name: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}name'])!, faceSamplePath: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}face_sample_path']), );
+}
+@override
+$PersonsTable createAlias(String alias) {
+return $PersonsTable(attachedDatabase, alias);}}class Person extends DataClass implements Insertable<Person> 
+{
+final int id;
+final String name;
+final String? faceSamplePath;
+const Person({required this.id, required this.name, this.faceSamplePath});@override
+Map<String, Expression> toColumns(bool nullToAbsent) {
+final map = <String, Expression> {};map['id'] = Variable<int>(id);
+map['name'] = Variable<String>(name);
+if (!nullToAbsent || faceSamplePath != null){map['face_sample_path'] = Variable<String>(faceSamplePath);
+}return map; 
+}
+PersonsCompanion toCompanion(bool nullToAbsent) {
+return PersonsCompanion(id: Value(id),name: Value(name),faceSamplePath: faceSamplePath == null && nullToAbsent ? const Value.absent() : Value(faceSamplePath),);
+}
+factory Person.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+serializer ??= driftRuntimeOptions.defaultSerializer;
+return Person(id: serializer.fromJson<int>(json['id']),name: serializer.fromJson<String>(json['name']),faceSamplePath: serializer.fromJson<String?>(json['faceSamplePath']),);}
+@override Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+serializer ??= driftRuntimeOptions.defaultSerializer;
+return <String, dynamic>{
+'id': serializer.toJson<int>(id),'name': serializer.toJson<String>(name),'faceSamplePath': serializer.toJson<String?>(faceSamplePath),};}Person copyWith({int? id,String? name,Value<String?> faceSamplePath = const Value.absent()}) => Person(id: id ?? this.id,name: name ?? this.name,faceSamplePath: faceSamplePath.present ? faceSamplePath.value : this.faceSamplePath,);Person copyWithCompanion(PersonsCompanion data) {
+return Person(
+id: data.id.present ? data.id.value : this.id,name: data.name.present ? data.name.value : this.name,faceSamplePath: data.faceSamplePath.present ? data.faceSamplePath.value : this.faceSamplePath,);
+}
+@override
+String toString() {return (StringBuffer('Person(')..write('id: $id, ')..write('name: $name, ')..write('faceSamplePath: $faceSamplePath')..write(')')).toString();}
+@override
+ int get hashCode => Object.hash(id, name, faceSamplePath);@override
+bool operator ==(Object other) => identical(this, other) || (other is Person && other.id == this.id && other.name == this.name && other.faceSamplePath == this.faceSamplePath);
+}class PersonsCompanion extends UpdateCompanion<Person> {
+final Value<int> id;
+final Value<String> name;
+final Value<String?> faceSamplePath;
+const PersonsCompanion({this.id = const Value.absent(),this.name = const Value.absent(),this.faceSamplePath = const Value.absent(),});
+PersonsCompanion.insert({this.id = const Value.absent(),required String name,this.faceSamplePath = const Value.absent(),}): name = Value(name);
+static Insertable<Person> custom({Expression<int>? id, 
+Expression<String>? name, 
+Expression<String>? faceSamplePath, 
+}) {
+return RawValuesInsertable({if (id != null)'id': id,if (name != null)'name': name,if (faceSamplePath != null)'face_sample_path': faceSamplePath,});
+}PersonsCompanion copyWith({Value<int>? id, Value<String>? name, Value<String?>? faceSamplePath}) {
+return PersonsCompanion(id: id ?? this.id,name: name ?? this.name,faceSamplePath: faceSamplePath ?? this.faceSamplePath,);
+}
+@override
+Map<String, Expression> toColumns(bool nullToAbsent) {
+final map = <String, Expression> {};if (id.present) {
+map['id'] = Variable<int>(id.value);}
+if (name.present) {
+map['name'] = Variable<String>(name.value);}
+if (faceSamplePath.present) {
+map['face_sample_path'] = Variable<String>(faceSamplePath.value);}
+return map; 
+}
+@override
+String toString() {return (StringBuffer('PersonsCompanion(')..write('id: $id, ')..write('name: $name, ')..write('faceSamplePath: $faceSamplePath')..write(')')).toString();}
+}
+class $DetectedFacesTable extends DetectedFaces with TableInfo<$DetectedFacesTable, DetectedFace>{
+@override final GeneratedDatabase attachedDatabase;
+final String? _alias;
+$DetectedFacesTable(this.attachedDatabase, [this._alias]);
+static const VerificationMeta _idMeta = const VerificationMeta('id');
+@override
+late final GeneratedColumn<int> id = GeneratedColumn<int>('id', aliasedName, false, hasAutoIncrement: true, type: DriftSqlType.int, requiredDuringInsert: false, defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+static const VerificationMeta _photoIdMeta = const VerificationMeta('photoId');
+@override
+late final GeneratedColumn<int> photoId = GeneratedColumn<int>('photo_id', aliasedName, false, type: DriftSqlType.int, requiredDuringInsert: true, defaultConstraints: GeneratedColumn.constraintIsAlways('REFERENCES photos (id)'));
+static const VerificationMeta _personIdMeta = const VerificationMeta('personId');
+@override
+late final GeneratedColumn<int> personId = GeneratedColumn<int>('person_id', aliasedName, true, type: DriftSqlType.int, requiredDuringInsert: false, defaultConstraints: GeneratedColumn.constraintIsAlways('REFERENCES persons (id)'));
+static const VerificationMeta _xMeta = const VerificationMeta('x');
+@override
+late final GeneratedColumn<double> x = GeneratedColumn<double>('x', aliasedName, false, type: DriftSqlType.double, requiredDuringInsert: true);
+static const VerificationMeta _yMeta = const VerificationMeta('y');
+@override
+late final GeneratedColumn<double> y = GeneratedColumn<double>('y', aliasedName, false, type: DriftSqlType.double, requiredDuringInsert: true);
+static const VerificationMeta _widthMeta = const VerificationMeta('width');
+@override
+late final GeneratedColumn<double> width = GeneratedColumn<double>('width', aliasedName, false, type: DriftSqlType.double, requiredDuringInsert: true);
+static const VerificationMeta _heightMeta = const VerificationMeta('height');
+@override
+late final GeneratedColumn<double> height = GeneratedColumn<double>('height', aliasedName, false, type: DriftSqlType.double, requiredDuringInsert: true);
+static const VerificationMeta _faceThumbnailPathMeta = const VerificationMeta('faceThumbnailPath');
+@override
+late final GeneratedColumn<String> faceThumbnailPath = GeneratedColumn<String>('face_thumbnail_path', aliasedName, true, type: DriftSqlType.string, requiredDuringInsert: false);
+static const VerificationMeta _embeddingMeta = const VerificationMeta('embedding');
+@override
+late final GeneratedColumn<String> embedding = GeneratedColumn<String>('embedding', aliasedName, true, type: DriftSqlType.string, requiredDuringInsert: false);
+@override
+List<GeneratedColumn> get $columns => [id, photoId, personId, x, y, width, height, faceThumbnailPath, embedding];
+@override
+String get aliasedName => _alias ?? actualTableName;
+@override
+ String get actualTableName => $name;
+static const String $name = 'detected_faces';
+@override
+VerificationContext validateIntegrity(Insertable<DetectedFace> instance, {bool isInserting = false}) {
+final context = VerificationContext();
+final data = instance.toColumns(true);
+if (data.containsKey('id')) {
+context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));}if (data.containsKey('photo_id')) {
+context.handle(_photoIdMeta, photoId.isAcceptableOrUnknown(data['photo_id']!, _photoIdMeta));} else if (isInserting) {
+context.missing(_photoIdMeta);
+}
+if (data.containsKey('person_id')) {
+context.handle(_personIdMeta, personId.isAcceptableOrUnknown(data['person_id']!, _personIdMeta));}if (data.containsKey('x')) {
+context.handle(_xMeta, x.isAcceptableOrUnknown(data['x']!, _xMeta));} else if (isInserting) {
+context.missing(_xMeta);
+}
+if (data.containsKey('y')) {
+context.handle(_yMeta, y.isAcceptableOrUnknown(data['y']!, _yMeta));} else if (isInserting) {
+context.missing(_yMeta);
+}
+if (data.containsKey('width')) {
+context.handle(_widthMeta, width.isAcceptableOrUnknown(data['width']!, _widthMeta));} else if (isInserting) {
+context.missing(_widthMeta);
+}
+if (data.containsKey('height')) {
+context.handle(_heightMeta, height.isAcceptableOrUnknown(data['height']!, _heightMeta));} else if (isInserting) {
+context.missing(_heightMeta);
+}
+if (data.containsKey('face_thumbnail_path')) {
+context.handle(_faceThumbnailPathMeta, faceThumbnailPath.isAcceptableOrUnknown(data['face_thumbnail_path']!, _faceThumbnailPathMeta));}if (data.containsKey('embedding')) {
+context.handle(_embeddingMeta, embedding.isAcceptableOrUnknown(data['embedding']!, _embeddingMeta));}return context;
+}
+@override
+Set<GeneratedColumn> get $primaryKey => {id};
+@override DetectedFace map(Map<String, dynamic> data, {String? tablePrefix})  {
+final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';return DetectedFace(id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!, photoId: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}photo_id'])!, personId: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}person_id']), x: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}x'])!, y: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}y'])!, width: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}width'])!, height: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}height'])!, faceThumbnailPath: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}face_thumbnail_path']), embedding: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}embedding']), );
+}
+@override
+$DetectedFacesTable createAlias(String alias) {
+return $DetectedFacesTable(attachedDatabase, alias);}}class DetectedFace extends DataClass implements Insertable<DetectedFace> 
+{
+final int id;
+final int photoId;
+final int? personId;
+final double x;
+final double y;
+final double width;
+final double height;
+final String? faceThumbnailPath;
+final String? embedding;
+const DetectedFace({required this.id, required this.photoId, this.personId, required this.x, required this.y, required this.width, required this.height, this.faceThumbnailPath, this.embedding});@override
+Map<String, Expression> toColumns(bool nullToAbsent) {
+final map = <String, Expression> {};map['id'] = Variable<int>(id);
+map['photo_id'] = Variable<int>(photoId);
+if (!nullToAbsent || personId != null){map['person_id'] = Variable<int>(personId);
+}map['x'] = Variable<double>(x);
+map['y'] = Variable<double>(y);
+map['width'] = Variable<double>(width);
+map['height'] = Variable<double>(height);
+if (!nullToAbsent || faceThumbnailPath != null){map['face_thumbnail_path'] = Variable<String>(faceThumbnailPath);
+}if (!nullToAbsent || embedding != null){map['embedding'] = Variable<String>(embedding);
+}return map; 
+}
+DetectedFacesCompanion toCompanion(bool nullToAbsent) {
+return DetectedFacesCompanion(id: Value(id),photoId: Value(photoId),personId: personId == null && nullToAbsent ? const Value.absent() : Value(personId),x: Value(x),y: Value(y),width: Value(width),height: Value(height),faceThumbnailPath: faceThumbnailPath == null && nullToAbsent ? const Value.absent() : Value(faceThumbnailPath),embedding: embedding == null && nullToAbsent ? const Value.absent() : Value(embedding),);
+}
+factory DetectedFace.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+serializer ??= driftRuntimeOptions.defaultSerializer;
+return DetectedFace(id: serializer.fromJson<int>(json['id']),photoId: serializer.fromJson<int>(json['photoId']),personId: serializer.fromJson<int?>(json['personId']),x: serializer.fromJson<double>(json['x']),y: serializer.fromJson<double>(json['y']),width: serializer.fromJson<double>(json['width']),height: serializer.fromJson<double>(json['height']),faceThumbnailPath: serializer.fromJson<String?>(json['faceThumbnailPath']),embedding: serializer.fromJson<String?>(json['embedding']),);}
+@override Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+serializer ??= driftRuntimeOptions.defaultSerializer;
+return <String, dynamic>{
+'id': serializer.toJson<int>(id),'photoId': serializer.toJson<int>(photoId),'personId': serializer.toJson<int?>(personId),'x': serializer.toJson<double>(x),'y': serializer.toJson<double>(y),'width': serializer.toJson<double>(width),'height': serializer.toJson<double>(height),'faceThumbnailPath': serializer.toJson<String?>(faceThumbnailPath),'embedding': serializer.toJson<String?>(embedding),};}DetectedFace copyWith({int? id,int? photoId,Value<int?> personId = const Value.absent(),double? x,double? y,double? width,double? height,Value<String?> faceThumbnailPath = const Value.absent(),Value<String?> embedding = const Value.absent()}) => DetectedFace(id: id ?? this.id,photoId: photoId ?? this.photoId,personId: personId.present ? personId.value : this.personId,x: x ?? this.x,y: y ?? this.y,width: width ?? this.width,height: height ?? this.height,faceThumbnailPath: faceThumbnailPath.present ? faceThumbnailPath.value : this.faceThumbnailPath,embedding: embedding.present ? embedding.value : this.embedding,);DetectedFace copyWithCompanion(DetectedFacesCompanion data) {
+return DetectedFace(
+id: data.id.present ? data.id.value : this.id,photoId: data.photoId.present ? data.photoId.value : this.photoId,personId: data.personId.present ? data.personId.value : this.personId,x: data.x.present ? data.x.value : this.x,y: data.y.present ? data.y.value : this.y,width: data.width.present ? data.width.value : this.width,height: data.height.present ? data.height.value : this.height,faceThumbnailPath: data.faceThumbnailPath.present ? data.faceThumbnailPath.value : this.faceThumbnailPath,embedding: data.embedding.present ? data.embedding.value : this.embedding,);
+}
+@override
+String toString() {return (StringBuffer('DetectedFace(')..write('id: $id, ')..write('photoId: $photoId, ')..write('personId: $personId, ')..write('x: $x, ')..write('y: $y, ')..write('width: $width, ')..write('height: $height, ')..write('faceThumbnailPath: $faceThumbnailPath, ')..write('embedding: $embedding')..write(')')).toString();}
+@override
+ int get hashCode => Object.hash(id, photoId, personId, x, y, width, height, faceThumbnailPath, embedding);@override
+bool operator ==(Object other) => identical(this, other) || (other is DetectedFace && other.id == this.id && other.photoId == this.photoId && other.personId == this.personId && other.x == this.x && other.y == this.y && other.width == this.width && other.height == this.height && other.faceThumbnailPath == this.faceThumbnailPath && other.embedding == this.embedding);
+}class DetectedFacesCompanion extends UpdateCompanion<DetectedFace> {
+final Value<int> id;
+final Value<int> photoId;
+final Value<int?> personId;
+final Value<double> x;
+final Value<double> y;
+final Value<double> width;
+final Value<double> height;
+final Value<String?> faceThumbnailPath;
+final Value<String?> embedding;
+const DetectedFacesCompanion({this.id = const Value.absent(),this.photoId = const Value.absent(),this.personId = const Value.absent(),this.x = const Value.absent(),this.y = const Value.absent(),this.width = const Value.absent(),this.height = const Value.absent(),this.faceThumbnailPath = const Value.absent(),this.embedding = const Value.absent(),});
+DetectedFacesCompanion.insert({this.id = const Value.absent(),required int photoId,this.personId = const Value.absent(),required double x,required double y,required double width,required double height,this.faceThumbnailPath = const Value.absent(),this.embedding = const Value.absent(),}): photoId = Value(photoId), x = Value(x), y = Value(y), width = Value(width), height = Value(height);
+static Insertable<DetectedFace> custom({Expression<int>? id, 
+Expression<int>? photoId, 
+Expression<int>? personId, 
+Expression<double>? x, 
+Expression<double>? y, 
+Expression<double>? width, 
+Expression<double>? height, 
+Expression<String>? faceThumbnailPath, 
+Expression<String>? embedding, 
+}) {
+return RawValuesInsertable({if (id != null)'id': id,if (photoId != null)'photo_id': photoId,if (personId != null)'person_id': personId,if (x != null)'x': x,if (y != null)'y': y,if (width != null)'width': width,if (height != null)'height': height,if (faceThumbnailPath != null)'face_thumbnail_path': faceThumbnailPath,if (embedding != null)'embedding': embedding,});
+}DetectedFacesCompanion copyWith({Value<int>? id, Value<int>? photoId, Value<int?>? personId, Value<double>? x, Value<double>? y, Value<double>? width, Value<double>? height, Value<String?>? faceThumbnailPath, Value<String?>? embedding}) {
+return DetectedFacesCompanion(id: id ?? this.id,photoId: photoId ?? this.photoId,personId: personId ?? this.personId,x: x ?? this.x,y: y ?? this.y,width: width ?? this.width,height: height ?? this.height,faceThumbnailPath: faceThumbnailPath ?? this.faceThumbnailPath,embedding: embedding ?? this.embedding,);
+}
+@override
+Map<String, Expression> toColumns(bool nullToAbsent) {
+final map = <String, Expression> {};if (id.present) {
+map['id'] = Variable<int>(id.value);}
+if (photoId.present) {
+map['photo_id'] = Variable<int>(photoId.value);}
+if (personId.present) {
+map['person_id'] = Variable<int>(personId.value);}
+if (x.present) {
+map['x'] = Variable<double>(x.value);}
+if (y.present) {
+map['y'] = Variable<double>(y.value);}
+if (width.present) {
+map['width'] = Variable<double>(width.value);}
+if (height.present) {
+map['height'] = Variable<double>(height.value);}
+if (faceThumbnailPath.present) {
+map['face_thumbnail_path'] = Variable<String>(faceThumbnailPath.value);}
+if (embedding.present) {
+map['embedding'] = Variable<String>(embedding.value);}
+return map; 
+}
+@override
+String toString() {return (StringBuffer('DetectedFacesCompanion(')..write('id: $id, ')..write('photoId: $photoId, ')..write('personId: $personId, ')..write('x: $x, ')..write('y: $y, ')..write('width: $width, ')..write('height: $height, ')..write('faceThumbnailPath: $faceThumbnailPath, ')..write('embedding: $embedding')..write(')')).toString();}
+}
 abstract class _$AppDatabase extends GeneratedDatabase{
 _$AppDatabase(QueryExecutor e): super(e);
 $AppDatabaseManager get managers => $AppDatabaseManager(this);
 late final $PhotosTable photos = $PhotosTable(this);
 late final $AlbumsTable albums = $AlbumsTable(this);
 late final $AlbumPhotosTable albumPhotos = $AlbumPhotosTable(this);
+late final $PersonsTable persons = $PersonsTable(this);
+late final $DetectedFacesTable detectedFaces = $DetectedFacesTable(this);
 @override
 Iterable<TableInfo<Table, Object?>> get allTables => allSchemaEntities.whereType<TableInfo<Table, Object?>>();
 @override
-List<DatabaseSchemaEntity> get allSchemaEntities => [photos, albums, albumPhotos];
+List<DatabaseSchemaEntity> get allSchemaEntities => [photos, albums, albumPhotos, persons, detectedFaces];
 }
-typedef $$PhotosTableCreateCompanionBuilder = PhotosCompanion Function({Value<int> id,required String fileName,required String kdrivePath,required DateTime dateTaken,Value<String?> localThumbnailPath,Value<String?> localHighResPath,Value<String?> remoteThumbnailUrl,required List<String> aiTags,Value<bool> isFavorite,Value<String?> locationName,Value<double?> latitude,Value<double?> longitude,Value<String> mediaType,Value<int?> duration,Value<String?> cameraModel,Value<String?> exposureTime,Value<String?> fNumber,Value<int?> iso,Value<String?> focalLength,Value<String?> flash,Value<String?> lensModel,});
-typedef $$PhotosTableUpdateCompanionBuilder = PhotosCompanion Function({Value<int> id,Value<String> fileName,Value<String> kdrivePath,Value<DateTime> dateTaken,Value<String?> localThumbnailPath,Value<String?> localHighResPath,Value<String?> remoteThumbnailUrl,Value<List<String>> aiTags,Value<bool> isFavorite,Value<String?> locationName,Value<double?> latitude,Value<double?> longitude,Value<String> mediaType,Value<int?> duration,Value<String?> cameraModel,Value<String?> exposureTime,Value<String?> fNumber,Value<int?> iso,Value<String?> focalLength,Value<String?> flash,Value<String?> lensModel,});
+typedef $$PhotosTableCreateCompanionBuilder = PhotosCompanion Function({Value<int> id,required String fileName,required String kdrivePath,required DateTime dateTaken,Value<String?> localThumbnailPath,Value<String?> localHighResPath,Value<String?> remoteThumbnailUrl,required List<String> aiTags,Value<bool> isFavorite,Value<String?> locationName,Value<double?> latitude,Value<double?> longitude,Value<String> mediaType,Value<int?> duration,Value<String?> cameraModel,Value<String?> exposureTime,Value<String?> fNumber,Value<int?> iso,Value<String?> focalLength,Value<String?> flash,Value<String?> lensModel,Value<String?> keywords,Value<String?> people,});
+typedef $$PhotosTableUpdateCompanionBuilder = PhotosCompanion Function({Value<int> id,Value<String> fileName,Value<String> kdrivePath,Value<DateTime> dateTaken,Value<String?> localThumbnailPath,Value<String?> localHighResPath,Value<String?> remoteThumbnailUrl,Value<List<String>> aiTags,Value<bool> isFavorite,Value<String?> locationName,Value<double?> latitude,Value<double?> longitude,Value<String> mediaType,Value<int?> duration,Value<String?> cameraModel,Value<String?> exposureTime,Value<String?> fNumber,Value<int?> iso,Value<String?> focalLength,Value<String?> flash,Value<String?> lensModel,Value<String?> keywords,Value<String?> people,});
       final class $$PhotosTableReferences extends BaseReferences<
         _$AppDatabase,
         $PhotosTable,
@@ -551,6 +837,33 @@ typedef $$PhotosTableUpdateCompanionBuilder = PhotosCompanion Function({Value<in
           );
 
           final cache = $_typedResult.readTableOrNull(_albumPhotosRefsTable($_db));
+          return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+
+
+        }
+        
+          
+                  static MultiTypedResultKey<
+          $DetectedFacesTable,
+          List<DetectedFace>
+        > _detectedFacesRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(
+          db.detectedFaces, 
+          aliasName: $_aliasNameGenerator(
+            db.photos.id,
+            db.detectedFaces.photoId)
+        );
+
+          $$DetectedFacesTableProcessedTableManager get detectedFacesRefs {
+        final manager = $$DetectedFacesTableTableManager(
+            $_db, $_db.detectedFaces
+            ).filter(
+              (f) => f.photoId.id(
+              $_item.id
+            )
+          );
+
+          final cache = $_typedResult.readTableOrNull(_detectedFacesRefsTable($_db));
           return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
 
 
@@ -672,6 +985,16 @@ ColumnFilters<String> get lensModel => $composableBuilder(
       builder: (column) => 
       ColumnFilters(column));
       
+ColumnFilters<String> get keywords => $composableBuilder(
+      column: $table.keywords,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<String> get people => $composableBuilder(
+      column: $table.people,
+      builder: (column) => 
+      ColumnFilters(column));
+      
         Expression<bool> albumsRefs(
           Expression<bool> Function( $$AlbumsTableFilterComposer f) f
         ) {
@@ -704,6 +1027,26 @@ ColumnFilters<String> get lensModel => $composableBuilder(
       $$AlbumPhotosTableFilterComposer(
               $db: $db,
               $table: $db.albumPhotos,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+        ));
+          return f(composer);
+        }
+
+        Expression<bool> detectedFacesRefs(
+          Expression<bool> Function( $$DetectedFacesTableFilterComposer f) f
+        ) {
+                final $$DetectedFacesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.detectedFaces,
+      getReferencedColumn: (t) => t.photoId,
+      builder: (joinBuilder,{$addJoinBuilderToRootComposer,$removeJoinBuilderFromRootComposer }) => 
+      $$DetectedFacesTableFilterComposer(
+              $db: $db,
+              $table: $db.detectedFaces,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -828,6 +1171,16 @@ ColumnOrderings<String> get lensModel => $composableBuilder(
       builder: (column) => 
       ColumnOrderings(column));
       
+ColumnOrderings<String> get keywords => $composableBuilder(
+      column: $table.keywords,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<String> get people => $composableBuilder(
+      column: $table.people,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
         }
       class $$PhotosTableAnnotationComposer extends Composer<
         _$AppDatabase,
@@ -923,6 +1276,14 @@ GeneratedColumn<String> get lensModel => $composableBuilder(
       column: $table.lensModel,
       builder: (column) => column);
       
+GeneratedColumn<String> get keywords => $composableBuilder(
+      column: $table.keywords,
+      builder: (column) => column);
+      
+GeneratedColumn<String> get people => $composableBuilder(
+      column: $table.people,
+      builder: (column) => column);
+      
         Expression<T> albumsRefs<T extends Object>(
           Expression<T> Function( $$AlbumsTableAnnotationComposer a) f
         ) {
@@ -963,6 +1324,26 @@ GeneratedColumn<String> get lensModel => $composableBuilder(
           return f(composer);
         }
 
+        Expression<T> detectedFacesRefs<T extends Object>(
+          Expression<T> Function( $$DetectedFacesTableAnnotationComposer a) f
+        ) {
+                final $$DetectedFacesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.detectedFaces,
+      getReferencedColumn: (t) => t.photoId,
+      builder: (joinBuilder,{$addJoinBuilderToRootComposer,$removeJoinBuilderFromRootComposer }) => 
+      $$DetectedFacesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.detectedFaces,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+        ));
+          return f(composer);
+        }
+
         }
       class $$PhotosTableTableManager extends RootTableManager    <_$AppDatabase,
     $PhotosTable,
@@ -974,7 +1355,7 @@ GeneratedColumn<String> get lensModel => $composableBuilder(
     $$PhotosTableUpdateCompanionBuilder,
     (Photo,$$PhotosTableReferences),
     Photo,
-    PrefetchHooks Function({bool albumsRefs,bool albumPhotosRefs})
+    PrefetchHooks Function({bool albumsRefs,bool albumPhotosRefs,bool detectedFacesRefs})
     > {
     $$PhotosTableTableManager(_$AppDatabase db, $PhotosTable table) : super(
       TableManagerState(
@@ -983,19 +1364,19 @@ GeneratedColumn<String> get lensModel => $composableBuilder(
         createFilteringComposer: () => $$PhotosTableFilterComposer($db: db,$table:table),
         createOrderingComposer: () => $$PhotosTableOrderingComposer($db: db,$table:table),
         createComputedFieldComposer: () => $$PhotosTableAnnotationComposer($db: db,$table:table),
-        updateCompanionCallback: ({Value<int> id = const Value.absent(),Value<String> fileName = const Value.absent(),Value<String> kdrivePath = const Value.absent(),Value<DateTime> dateTaken = const Value.absent(),Value<String?> localThumbnailPath = const Value.absent(),Value<String?> localHighResPath = const Value.absent(),Value<String?> remoteThumbnailUrl = const Value.absent(),Value<List<String>> aiTags = const Value.absent(),Value<bool> isFavorite = const Value.absent(),Value<String?> locationName = const Value.absent(),Value<double?> latitude = const Value.absent(),Value<double?> longitude = const Value.absent(),Value<String> mediaType = const Value.absent(),Value<int?> duration = const Value.absent(),Value<String?> cameraModel = const Value.absent(),Value<String?> exposureTime = const Value.absent(),Value<String?> fNumber = const Value.absent(),Value<int?> iso = const Value.absent(),Value<String?> focalLength = const Value.absent(),Value<String?> flash = const Value.absent(),Value<String?> lensModel = const Value.absent(),})=> PhotosCompanion(id: id,fileName: fileName,kdrivePath: kdrivePath,dateTaken: dateTaken,localThumbnailPath: localThumbnailPath,localHighResPath: localHighResPath,remoteThumbnailUrl: remoteThumbnailUrl,aiTags: aiTags,isFavorite: isFavorite,locationName: locationName,latitude: latitude,longitude: longitude,mediaType: mediaType,duration: duration,cameraModel: cameraModel,exposureTime: exposureTime,fNumber: fNumber,iso: iso,focalLength: focalLength,flash: flash,lensModel: lensModel,),
-        createCompanionCallback: ({Value<int> id = const Value.absent(),required String fileName,required String kdrivePath,required DateTime dateTaken,Value<String?> localThumbnailPath = const Value.absent(),Value<String?> localHighResPath = const Value.absent(),Value<String?> remoteThumbnailUrl = const Value.absent(),required List<String> aiTags,Value<bool> isFavorite = const Value.absent(),Value<String?> locationName = const Value.absent(),Value<double?> latitude = const Value.absent(),Value<double?> longitude = const Value.absent(),Value<String> mediaType = const Value.absent(),Value<int?> duration = const Value.absent(),Value<String?> cameraModel = const Value.absent(),Value<String?> exposureTime = const Value.absent(),Value<String?> fNumber = const Value.absent(),Value<int?> iso = const Value.absent(),Value<String?> focalLength = const Value.absent(),Value<String?> flash = const Value.absent(),Value<String?> lensModel = const Value.absent(),})=> PhotosCompanion.insert(id: id,fileName: fileName,kdrivePath: kdrivePath,dateTaken: dateTaken,localThumbnailPath: localThumbnailPath,localHighResPath: localHighResPath,remoteThumbnailUrl: remoteThumbnailUrl,aiTags: aiTags,isFavorite: isFavorite,locationName: locationName,latitude: latitude,longitude: longitude,mediaType: mediaType,duration: duration,cameraModel: cameraModel,exposureTime: exposureTime,fNumber: fNumber,iso: iso,focalLength: focalLength,flash: flash,lensModel: lensModel,),
+        updateCompanionCallback: ({Value<int> id = const Value.absent(),Value<String> fileName = const Value.absent(),Value<String> kdrivePath = const Value.absent(),Value<DateTime> dateTaken = const Value.absent(),Value<String?> localThumbnailPath = const Value.absent(),Value<String?> localHighResPath = const Value.absent(),Value<String?> remoteThumbnailUrl = const Value.absent(),Value<List<String>> aiTags = const Value.absent(),Value<bool> isFavorite = const Value.absent(),Value<String?> locationName = const Value.absent(),Value<double?> latitude = const Value.absent(),Value<double?> longitude = const Value.absent(),Value<String> mediaType = const Value.absent(),Value<int?> duration = const Value.absent(),Value<String?> cameraModel = const Value.absent(),Value<String?> exposureTime = const Value.absent(),Value<String?> fNumber = const Value.absent(),Value<int?> iso = const Value.absent(),Value<String?> focalLength = const Value.absent(),Value<String?> flash = const Value.absent(),Value<String?> lensModel = const Value.absent(),Value<String?> keywords = const Value.absent(),Value<String?> people = const Value.absent(),})=> PhotosCompanion(id: id,fileName: fileName,kdrivePath: kdrivePath,dateTaken: dateTaken,localThumbnailPath: localThumbnailPath,localHighResPath: localHighResPath,remoteThumbnailUrl: remoteThumbnailUrl,aiTags: aiTags,isFavorite: isFavorite,locationName: locationName,latitude: latitude,longitude: longitude,mediaType: mediaType,duration: duration,cameraModel: cameraModel,exposureTime: exposureTime,fNumber: fNumber,iso: iso,focalLength: focalLength,flash: flash,lensModel: lensModel,keywords: keywords,people: people,),
+        createCompanionCallback: ({Value<int> id = const Value.absent(),required String fileName,required String kdrivePath,required DateTime dateTaken,Value<String?> localThumbnailPath = const Value.absent(),Value<String?> localHighResPath = const Value.absent(),Value<String?> remoteThumbnailUrl = const Value.absent(),required List<String> aiTags,Value<bool> isFavorite = const Value.absent(),Value<String?> locationName = const Value.absent(),Value<double?> latitude = const Value.absent(),Value<double?> longitude = const Value.absent(),Value<String> mediaType = const Value.absent(),Value<int?> duration = const Value.absent(),Value<String?> cameraModel = const Value.absent(),Value<String?> exposureTime = const Value.absent(),Value<String?> fNumber = const Value.absent(),Value<int?> iso = const Value.absent(),Value<String?> focalLength = const Value.absent(),Value<String?> flash = const Value.absent(),Value<String?> lensModel = const Value.absent(),Value<String?> keywords = const Value.absent(),Value<String?> people = const Value.absent(),})=> PhotosCompanion.insert(id: id,fileName: fileName,kdrivePath: kdrivePath,dateTaken: dateTaken,localThumbnailPath: localThumbnailPath,localHighResPath: localHighResPath,remoteThumbnailUrl: remoteThumbnailUrl,aiTags: aiTags,isFavorite: isFavorite,locationName: locationName,latitude: latitude,longitude: longitude,mediaType: mediaType,duration: duration,cameraModel: cameraModel,exposureTime: exposureTime,fNumber: fNumber,iso: iso,focalLength: focalLength,flash: flash,lensModel: lensModel,keywords: keywords,people: people,),
         withReferenceMapper: (p0) => p0
               .map(
                   (e) =>
                      (e.readTable(table), $$PhotosTableReferences(db, table, e))
                   )
               .toList(),
-        prefetchHooksCallback:         ({albumsRefs = false,albumPhotosRefs = false}){
+        prefetchHooksCallback:         ({albumsRefs = false,albumPhotosRefs = false,detectedFacesRefs = false}){
           return PrefetchHooks(
             db: db,
             explicitlyWatchedTables: [
-             if (albumsRefs) db.albums,if (albumPhotosRefs) db.albumPhotos
+             if (albumsRefs) db.albums,if (albumPhotosRefs) db.albumPhotos,if (detectedFacesRefs) db.detectedFaces
             ],
             addJoins: null,
             getPrefetchedDataCallback: (items) async {
@@ -1018,6 +1399,15 @@ GeneratedColumn<String> get lensModel => $composableBuilder(
                   referencedItemsForCurrentItem: (item, referencedItems) =>
                       referencedItems.where((e) => e.photoId == item.id),
                   typedResults: items)
+            ,          if (detectedFacesRefs) await $_getPrefetchedData(
+                  currentTable: table,
+                  referencedTable:
+                      $$PhotosTableReferences._detectedFacesRefsTable(db),
+                  managerFromTypedResult: (p0) =>
+                      $$PhotosTableReferences(db, table, p0).detectedFacesRefs,
+                  referencedItemsForCurrentItem: (item, referencedItems) =>
+                      referencedItems.where((e) => e.photoId == item.id),
+                  typedResults: items)
             
                 ];
               },
@@ -1036,7 +1426,7 @@ GeneratedColumn<String> get lensModel => $composableBuilder(
     $$PhotosTableUpdateCompanionBuilder,
     (Photo,$$PhotosTableReferences),
     Photo,
-    PrefetchHooks Function({bool albumsRefs,bool albumPhotosRefs})
+    PrefetchHooks Function({bool albumsRefs,bool albumPhotosRefs,bool detectedFacesRefs})
     >;typedef $$AlbumsTableCreateCompanionBuilder = AlbumsCompanion Function({Value<int> id,required String name,Value<int?> coverPhotoId,Value<DateTime> createdAt,});
 typedef $$AlbumsTableUpdateCompanionBuilder = AlbumsCompanion Function({Value<int> id,Value<String> name,Value<int?> coverPhotoId,Value<DateTime> createdAt,});
       final class $$AlbumsTableReferences extends BaseReferences<
@@ -1584,10 +1974,577 @@ typedef $$AlbumPhotosTableUpdateCompanionBuilder = AlbumPhotosCompanion Function
     (AlbumPhoto,$$AlbumPhotosTableReferences),
     AlbumPhoto,
     PrefetchHooks Function({bool albumId,bool photoId})
+    >;typedef $$PersonsTableCreateCompanionBuilder = PersonsCompanion Function({Value<int> id,required String name,Value<String?> faceSamplePath,});
+typedef $$PersonsTableUpdateCompanionBuilder = PersonsCompanion Function({Value<int> id,Value<String> name,Value<String?> faceSamplePath,});
+      final class $$PersonsTableReferences extends BaseReferences<
+        _$AppDatabase,
+        $PersonsTable,
+        Person> {
+        $$PersonsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+        
+                  
+                  static MultiTypedResultKey<
+          $DetectedFacesTable,
+          List<DetectedFace>
+        > _detectedFacesRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(
+          db.detectedFaces, 
+          aliasName: $_aliasNameGenerator(
+            db.persons.id,
+            db.detectedFaces.personId)
+        );
+
+          $$DetectedFacesTableProcessedTableManager get detectedFacesRefs {
+        final manager = $$DetectedFacesTableTableManager(
+            $_db, $_db.detectedFaces
+            ).filter(
+              (f) => f.personId.id(
+              $_item.id
+            )
+          );
+
+          final cache = $_typedResult.readTableOrNull(_detectedFacesRefsTable($_db));
+          return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+
+
+        }
+        
+
+      }class $$PersonsTableFilterComposer extends Composer<
+        _$AppDatabase,
+        $PersonsTable> {
+        $$PersonsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+          ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<String> get faceSamplePath => $composableBuilder(
+      column: $table.faceSamplePath,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+        Expression<bool> detectedFacesRefs(
+          Expression<bool> Function( $$DetectedFacesTableFilterComposer f) f
+        ) {
+                final $$DetectedFacesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.detectedFaces,
+      getReferencedColumn: (t) => t.personId,
+      builder: (joinBuilder,{$addJoinBuilderToRootComposer,$removeJoinBuilderFromRootComposer }) => 
+      $$DetectedFacesTableFilterComposer(
+              $db: $db,
+              $table: $db.detectedFaces,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+        ));
+          return f(composer);
+        }
+
+        }
+      class $$PersonsTableOrderingComposer extends Composer<
+        _$AppDatabase,
+        $PersonsTable> {
+        $$PersonsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+          ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<String> get faceSamplePath => $composableBuilder(
+      column: $table.faceSamplePath,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+        }
+      class $$PersonsTableAnnotationComposer extends Composer<
+        _$AppDatabase,
+        $PersonsTable> {
+        $$PersonsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+          GeneratedColumn<int> get id => $composableBuilder(
+      column: $table.id,
+      builder: (column) => column);
+      
+GeneratedColumn<String> get name => $composableBuilder(
+      column: $table.name,
+      builder: (column) => column);
+      
+GeneratedColumn<String> get faceSamplePath => $composableBuilder(
+      column: $table.faceSamplePath,
+      builder: (column) => column);
+      
+        Expression<T> detectedFacesRefs<T extends Object>(
+          Expression<T> Function( $$DetectedFacesTableAnnotationComposer a) f
+        ) {
+                final $$DetectedFacesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.detectedFaces,
+      getReferencedColumn: (t) => t.personId,
+      builder: (joinBuilder,{$addJoinBuilderToRootComposer,$removeJoinBuilderFromRootComposer }) => 
+      $$DetectedFacesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.detectedFaces,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+        ));
+          return f(composer);
+        }
+
+        }
+      class $$PersonsTableTableManager extends RootTableManager    <_$AppDatabase,
+    $PersonsTable,
+    Person,
+    $$PersonsTableFilterComposer,
+    $$PersonsTableOrderingComposer,
+    $$PersonsTableAnnotationComposer,
+    $$PersonsTableCreateCompanionBuilder,
+    $$PersonsTableUpdateCompanionBuilder,
+    (Person,$$PersonsTableReferences),
+    Person,
+    PrefetchHooks Function({bool detectedFacesRefs})
+    > {
+    $$PersonsTableTableManager(_$AppDatabase db, $PersonsTable table) : super(
+      TableManagerState(
+        db: db,
+        table: table,
+        createFilteringComposer: () => $$PersonsTableFilterComposer($db: db,$table:table),
+        createOrderingComposer: () => $$PersonsTableOrderingComposer($db: db,$table:table),
+        createComputedFieldComposer: () => $$PersonsTableAnnotationComposer($db: db,$table:table),
+        updateCompanionCallback: ({Value<int> id = const Value.absent(),Value<String> name = const Value.absent(),Value<String?> faceSamplePath = const Value.absent(),})=> PersonsCompanion(id: id,name: name,faceSamplePath: faceSamplePath,),
+        createCompanionCallback: ({Value<int> id = const Value.absent(),required String name,Value<String?> faceSamplePath = const Value.absent(),})=> PersonsCompanion.insert(id: id,name: name,faceSamplePath: faceSamplePath,),
+        withReferenceMapper: (p0) => p0
+              .map(
+                  (e) =>
+                     (e.readTable(table), $$PersonsTableReferences(db, table, e))
+                  )
+              .toList(),
+        prefetchHooksCallback:         ({detectedFacesRefs = false}){
+          return PrefetchHooks(
+            db: db,
+            explicitlyWatchedTables: [
+             if (detectedFacesRefs) db.detectedFaces
+            ],
+            addJoins: null,
+            getPrefetchedDataCallback: (items) async {
+            return [
+                      if (detectedFacesRefs) await $_getPrefetchedData(
+                  currentTable: table,
+                  referencedTable:
+                      $$PersonsTableReferences._detectedFacesRefsTable(db),
+                  managerFromTypedResult: (p0) =>
+                      $$PersonsTableReferences(db, table, p0).detectedFacesRefs,
+                  referencedItemsForCurrentItem: (item, referencedItems) =>
+                      referencedItems.where((e) => e.personId == item.id),
+                  typedResults: items)
+            
+                ];
+              },
+          );
+        }
+,
+        ));
+        }
+    typedef $$PersonsTableProcessedTableManager = ProcessedTableManager    <_$AppDatabase,
+    $PersonsTable,
+    Person,
+    $$PersonsTableFilterComposer,
+    $$PersonsTableOrderingComposer,
+    $$PersonsTableAnnotationComposer,
+    $$PersonsTableCreateCompanionBuilder,
+    $$PersonsTableUpdateCompanionBuilder,
+    (Person,$$PersonsTableReferences),
+    Person,
+    PrefetchHooks Function({bool detectedFacesRefs})
+    >;typedef $$DetectedFacesTableCreateCompanionBuilder = DetectedFacesCompanion Function({Value<int> id,required int photoId,Value<int?> personId,required double x,required double y,required double width,required double height,Value<String?> faceThumbnailPath,Value<String?> embedding,});
+typedef $$DetectedFacesTableUpdateCompanionBuilder = DetectedFacesCompanion Function({Value<int> id,Value<int> photoId,Value<int?> personId,Value<double> x,Value<double> y,Value<double> width,Value<double> height,Value<String?> faceThumbnailPath,Value<String?> embedding,});
+      final class $$DetectedFacesTableReferences extends BaseReferences<
+        _$AppDatabase,
+        $DetectedFacesTable,
+        DetectedFace> {
+        $$DetectedFacesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+        
+                          static $PhotosTable _photoIdTable(_$AppDatabase db) => 
+            db.photos.createAlias($_aliasNameGenerator(
+            db.detectedFaces.photoId,
+            db.photos.id));
+          
+
+        $$PhotosTableProcessedTableManager? get photoId {
+          if ($_item.photoId == null) return null;
+          final manager = $$PhotosTableTableManager($_db, $_db.photos).filter((f) => f.id($_item.photoId!));
+          final item = $_typedResult.readTableOrNull(_photoIdTable($_db));
+          if (item == null) return manager;
+          return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+        }
+
+                  static $PersonsTable _personIdTable(_$AppDatabase db) => 
+            db.persons.createAlias($_aliasNameGenerator(
+            db.detectedFaces.personId,
+            db.persons.id));
+          
+
+        $$PersonsTableProcessedTableManager? get personId {
+          if ($_item.personId == null) return null;
+          final manager = $$PersonsTableTableManager($_db, $_db.persons).filter((f) => f.id($_item.personId!));
+          final item = $_typedResult.readTableOrNull(_personIdTable($_db));
+          if (item == null) return manager;
+          return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+        }
+
+
+      }class $$DetectedFacesTableFilterComposer extends Composer<
+        _$AppDatabase,
+        $DetectedFacesTable> {
+        $$DetectedFacesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+          ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<double> get x => $composableBuilder(
+      column: $table.x,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<double> get y => $composableBuilder(
+      column: $table.y,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<double> get width => $composableBuilder(
+      column: $table.width,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<double> get height => $composableBuilder(
+      column: $table.height,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<String> get faceThumbnailPath => $composableBuilder(
+      column: $table.faceThumbnailPath,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+ColumnFilters<String> get embedding => $composableBuilder(
+      column: $table.embedding,
+      builder: (column) => 
+      ColumnFilters(column));
+      
+        $$PhotosTableFilterComposer get photoId {
+                final $$PhotosTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.photoId,
+      referencedTable: $db.photos,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder,{$addJoinBuilderToRootComposer,$removeJoinBuilderFromRootComposer }) => 
+      $$PhotosTableFilterComposer(
+              $db: $db,
+              $table: $db.photos,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+        ));
+          return composer;
+        }
+        $$PersonsTableFilterComposer get personId {
+                final $$PersonsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.personId,
+      referencedTable: $db.persons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder,{$addJoinBuilderToRootComposer,$removeJoinBuilderFromRootComposer }) => 
+      $$PersonsTableFilterComposer(
+              $db: $db,
+              $table: $db.persons,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+        ));
+          return composer;
+        }
+        }
+      class $$DetectedFacesTableOrderingComposer extends Composer<
+        _$AppDatabase,
+        $DetectedFacesTable> {
+        $$DetectedFacesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+          ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<double> get x => $composableBuilder(
+      column: $table.x,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<double> get y => $composableBuilder(
+      column: $table.y,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<double> get width => $composableBuilder(
+      column: $table.width,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<double> get height => $composableBuilder(
+      column: $table.height,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<String> get faceThumbnailPath => $composableBuilder(
+      column: $table.faceThumbnailPath,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+ColumnOrderings<String> get embedding => $composableBuilder(
+      column: $table.embedding,
+      builder: (column) => 
+      ColumnOrderings(column));
+      
+        $$PhotosTableOrderingComposer get photoId {
+                final $$PhotosTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.photoId,
+      referencedTable: $db.photos,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder,{$addJoinBuilderToRootComposer,$removeJoinBuilderFromRootComposer }) => 
+      $$PhotosTableOrderingComposer(
+              $db: $db,
+              $table: $db.photos,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+        ));
+          return composer;
+        }
+        $$PersonsTableOrderingComposer get personId {
+                final $$PersonsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.personId,
+      referencedTable: $db.persons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder,{$addJoinBuilderToRootComposer,$removeJoinBuilderFromRootComposer }) => 
+      $$PersonsTableOrderingComposer(
+              $db: $db,
+              $table: $db.persons,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+        ));
+          return composer;
+        }
+        }
+      class $$DetectedFacesTableAnnotationComposer extends Composer<
+        _$AppDatabase,
+        $DetectedFacesTable> {
+        $$DetectedFacesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+          GeneratedColumn<int> get id => $composableBuilder(
+      column: $table.id,
+      builder: (column) => column);
+      
+GeneratedColumn<double> get x => $composableBuilder(
+      column: $table.x,
+      builder: (column) => column);
+      
+GeneratedColumn<double> get y => $composableBuilder(
+      column: $table.y,
+      builder: (column) => column);
+      
+GeneratedColumn<double> get width => $composableBuilder(
+      column: $table.width,
+      builder: (column) => column);
+      
+GeneratedColumn<double> get height => $composableBuilder(
+      column: $table.height,
+      builder: (column) => column);
+      
+GeneratedColumn<String> get faceThumbnailPath => $composableBuilder(
+      column: $table.faceThumbnailPath,
+      builder: (column) => column);
+      
+GeneratedColumn<String> get embedding => $composableBuilder(
+      column: $table.embedding,
+      builder: (column) => column);
+      
+        $$PhotosTableAnnotationComposer get photoId {
+                final $$PhotosTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.photoId,
+      referencedTable: $db.photos,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder,{$addJoinBuilderToRootComposer,$removeJoinBuilderFromRootComposer }) => 
+      $$PhotosTableAnnotationComposer(
+              $db: $db,
+              $table: $db.photos,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+        ));
+          return composer;
+        }
+        $$PersonsTableAnnotationComposer get personId {
+                final $$PersonsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.personId,
+      referencedTable: $db.persons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder,{$addJoinBuilderToRootComposer,$removeJoinBuilderFromRootComposer }) => 
+      $$PersonsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.persons,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+        ));
+          return composer;
+        }
+        }
+      class $$DetectedFacesTableTableManager extends RootTableManager    <_$AppDatabase,
+    $DetectedFacesTable,
+    DetectedFace,
+    $$DetectedFacesTableFilterComposer,
+    $$DetectedFacesTableOrderingComposer,
+    $$DetectedFacesTableAnnotationComposer,
+    $$DetectedFacesTableCreateCompanionBuilder,
+    $$DetectedFacesTableUpdateCompanionBuilder,
+    (DetectedFace,$$DetectedFacesTableReferences),
+    DetectedFace,
+    PrefetchHooks Function({bool photoId,bool personId})
+    > {
+    $$DetectedFacesTableTableManager(_$AppDatabase db, $DetectedFacesTable table) : super(
+      TableManagerState(
+        db: db,
+        table: table,
+        createFilteringComposer: () => $$DetectedFacesTableFilterComposer($db: db,$table:table),
+        createOrderingComposer: () => $$DetectedFacesTableOrderingComposer($db: db,$table:table),
+        createComputedFieldComposer: () => $$DetectedFacesTableAnnotationComposer($db: db,$table:table),
+        updateCompanionCallback: ({Value<int> id = const Value.absent(),Value<int> photoId = const Value.absent(),Value<int?> personId = const Value.absent(),Value<double> x = const Value.absent(),Value<double> y = const Value.absent(),Value<double> width = const Value.absent(),Value<double> height = const Value.absent(),Value<String?> faceThumbnailPath = const Value.absent(),Value<String?> embedding = const Value.absent(),})=> DetectedFacesCompanion(id: id,photoId: photoId,personId: personId,x: x,y: y,width: width,height: height,faceThumbnailPath: faceThumbnailPath,embedding: embedding,),
+        createCompanionCallback: ({Value<int> id = const Value.absent(),required int photoId,Value<int?> personId = const Value.absent(),required double x,required double y,required double width,required double height,Value<String?> faceThumbnailPath = const Value.absent(),Value<String?> embedding = const Value.absent(),})=> DetectedFacesCompanion.insert(id: id,photoId: photoId,personId: personId,x: x,y: y,width: width,height: height,faceThumbnailPath: faceThumbnailPath,embedding: embedding,),
+        withReferenceMapper: (p0) => p0
+              .map(
+                  (e) =>
+                     (e.readTable(table), $$DetectedFacesTableReferences(db, table, e))
+                  )
+              .toList(),
+        prefetchHooksCallback:         ({photoId = false,personId = false}){
+          return PrefetchHooks(
+            db: db,
+            explicitlyWatchedTables: [
+             
+            ],
+            addJoins: <T extends TableManagerState<dynamic,dynamic,dynamic,dynamic,dynamic,dynamic,dynamic,dynamic,dynamic,dynamic,dynamic>>(state) {
+
+                                  if (photoId){
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.photoId,
+                    referencedTable:
+                        $$DetectedFacesTableReferences._photoIdTable(db),
+                    referencedColumn:
+                        $$DetectedFacesTableReferences._photoIdTable(db).id,
+                  ) as T;
+               }
+                  if (personId){
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.personId,
+                    referencedTable:
+                        $$DetectedFacesTableReferences._personIdTable(db),
+                    referencedColumn:
+                        $$DetectedFacesTableReferences._personIdTable(db).id,
+                  ) as T;
+               }
+
+                return state;
+              }
+,
+            getPrefetchedDataCallback: (items) async {
+            return [
+            
+                ];
+              },
+          );
+        }
+,
+        ));
+        }
+    typedef $$DetectedFacesTableProcessedTableManager = ProcessedTableManager    <_$AppDatabase,
+    $DetectedFacesTable,
+    DetectedFace,
+    $$DetectedFacesTableFilterComposer,
+    $$DetectedFacesTableOrderingComposer,
+    $$DetectedFacesTableAnnotationComposer,
+    $$DetectedFacesTableCreateCompanionBuilder,
+    $$DetectedFacesTableUpdateCompanionBuilder,
+    (DetectedFace,$$DetectedFacesTableReferences),
+    DetectedFace,
+    PrefetchHooks Function({bool photoId,bool personId})
     >;class $AppDatabaseManager {
 final _$AppDatabase _db;
 $AppDatabaseManager(this._db);
 $$PhotosTableTableManager get photos => $$PhotosTableTableManager(_db, _db.photos);
 $$AlbumsTableTableManager get albums => $$AlbumsTableTableManager(_db, _db.albums);
 $$AlbumPhotosTableTableManager get albumPhotos => $$AlbumPhotosTableTableManager(_db, _db.albumPhotos);
+$$PersonsTableTableManager get persons => $$PersonsTableTableManager(_db, _db.persons);
+$$DetectedFacesTableTableManager get detectedFaces => $$DetectedFacesTableTableManager(_db, _db.detectedFaces);
 }

@@ -12,6 +12,12 @@ class GalleryState extends Equatable {
   final bool showOnlyFavorites;
   final Set<int> selectedPhotoIds;
   final int processedCount;
+  final bool isAiScanning;
+  final int aiScanCurrent;
+  final int aiScanTotal;
+
+  final List<dynamic> trashItems;
+  final Set<String> selectedTrashIds;
 
   const GalleryState({
     this.status = GalleryStatus.initial,
@@ -22,6 +28,11 @@ class GalleryState extends Equatable {
     this.showOnlyFavorites = false,
     this.selectedPhotoIds = const {},
     this.processedCount = 0,
+    this.isAiScanning = false,
+    this.aiScanCurrent = 0,
+    this.aiScanTotal = 0,
+    this.trashItems = const [],
+    this.selectedTrashIds = const {},
   });
 
   GalleryState copyWith({
@@ -33,6 +44,11 @@ class GalleryState extends Equatable {
     bool? showOnlyFavorites,
     Set<int>? selectedPhotoIds,
     int? processedCount,
+    bool? isAiScanning,
+    int? aiScanCurrent,
+    int? aiScanTotal,
+    List<dynamic>? trashItems,
+    Set<String>? selectedTrashIds,
   }) {
     return GalleryState(
       status: status ?? this.status,
@@ -43,9 +59,28 @@ class GalleryState extends Equatable {
       showOnlyFavorites: showOnlyFavorites ?? this.showOnlyFavorites,
       selectedPhotoIds: selectedPhotoIds ?? this.selectedPhotoIds,
       processedCount: processedCount ?? this.processedCount,
+      isAiScanning: isAiScanning ?? this.isAiScanning,
+      aiScanCurrent: aiScanCurrent ?? this.aiScanCurrent,
+      aiScanTotal: aiScanTotal ?? this.aiScanTotal,
+      trashItems: trashItems ?? this.trashItems,
+      selectedTrashIds: selectedTrashIds ?? this.selectedTrashIds,
     );
   }
 
   @override
-  List<Object?> get props => [status, viewMode, photos, groupedPhotos, searchQuery, showOnlyFavorites, selectedPhotoIds, processedCount];
+  List<Object?> get props => [
+    status, 
+    viewMode, 
+    photos, 
+    groupedPhotos, 
+    searchQuery, 
+    showOnlyFavorites, 
+    selectedPhotoIds, 
+    processedCount,
+    isAiScanning,
+    aiScanCurrent,
+    aiScanTotal,
+    trashItems,
+    selectedTrashIds,
+  ];
 }
