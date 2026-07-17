@@ -44,14 +44,56 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
+    
+    // VIP MODUS AAN: Vertraag achtergrond sync voor sneller laden
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final syncEngine = context.read<GalleryBloc>().syncEngine;
+      syncEngine?.setThrottle(true);
+    });
+
     _downloadHighRes(_currentIndex);
+  }
+
+  @override
+  void dispose() {
+    // VIP MODUS UIT: Zet sync weer op turbo
+    final syncEngine = context.read<GalleryBloc>().syncEngine;
+    syncEngine?.setThrottle(false);
+    
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchLocationName(int index) async {
+    final photo = widget.photos[index];
+    try {
+      final placemarks = await placemarkFromCoordinates(photo.latitude!, photo.longitude!);
+      if (placemarks.isNotEmpty) {
+        final p = placemarks.first;
+        final name = '${p.locality}, ${p.country}';
+        
+        final db = AppDatabase();
+        await (db.update(db.photos)..where((t) => t.id.equals(photo.id))).write(
+          PhotosCompanion(locationName: Value(name)),
+        );
+        
+        if (mounted) {
+          setState(() {
+            widget.photos[index] = photo.copyWith(locationName: Value(name));
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _downloadHighRes(int index) async {
     if (index < 0 || index >= widget.photos.length) return;
     final photo = widget.photos[index];
 
-    if (photo.localHighResPath != null && File(photo.localHighResPath!).existsSync()) return;
+    // Haal direct locatie-naam op als we GPS hebben maar geen naam
+    if (photo.locationName == null && photo.latitude != null && photo.longitude != null) {
+      _fetchLocationName(index);
+    }
     if (_isDownloading[photo.id] == true) return;
 
     setState(() => _isDownloading[photo.id] = true);

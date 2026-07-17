@@ -4,7 +4,12 @@ import 'package:kphoto/core/services/biometric_service.dart';
 import 'package:kphoto/presentation/screens/gallery_screen.dart';
 import 'package:kphoto/presentation/screens/connect_kdrive_screen.dart';
 import 'package:kphoto/core/network/kdrive_api_service.dart';
+import 'package:kphoto/core/services/permission_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import 'package:kphoto/core/database/app_database.dart';
+import 'package:kphoto/presentation/blocs/gallery_bloc.dart';
+import 'package:kphoto/presentation/screens/initial_sync_screen.dart';
 
 class FirebaseLoginScreen extends StatefulWidget {
   const FirebaseLoginScreen({super.key});
@@ -25,7 +30,8 @@ class _FirebaseLoginScreenState extends State<FirebaseLoginScreen> {
   void initState() {
     super.initState();
     // Check direct of we door kunnen naar de gallerij
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await PermissionService.checkAndRequestPermissions(context);
       _checkAutoLogin();
     });
   }
@@ -90,6 +96,7 @@ class _FirebaseLoginScreenState extends State<FirebaseLoginScreen> {
     if (!mounted) return;
 
     if (kdriveLoggedIn) {
+      // Direct naar de gallerij, geen blocking scherm meer
       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => const GalleryScreen()));
     } else {
       Navigator.of(context).pushReplacement(MaterialPageRoute(

@@ -35,6 +35,14 @@ class SearchGallery extends GalleryEvent {
   List<Object?> get props => [query];
 }
 
+class SemanticSearch extends GalleryEvent {
+  final String query;
+  const SemanticSearch(this.query);
+
+  @override
+  List<Object?> get props => [query];
+}
+
 class ChangeViewMode extends GalleryEvent {
   final GalleryViewMode mode;
   const ChangeViewMode(this.mode);
@@ -118,3 +126,14 @@ class AiScanProgressUpdated extends GalleryEvent {
 }
 
 class AiScanFinished extends GalleryEvent {}
+
+class IndexingProgressUpdated extends GalleryEvent {
+  final int current;
+  final int total;
+  const IndexingProgressUpdated(this.current, this.total);
+
+  @override
+  List<Object?> get props => [current, total];
+}
+
+class IndexingFinished extends GalleryEvent {}

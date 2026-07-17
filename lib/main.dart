@@ -10,6 +10,9 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:kphoto/core/database/objectbox_manager.dart';
+import 'package:kphoto/core/services/media_processor_service.dart';
+import 'package:kphoto/core/services/vector_search_service.dart';
 
 import 'package:kphoto/presentation/screens/firebase_login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -54,9 +57,15 @@ void main() async {
   }
   
   final database = AppDatabase();
+  final objectBox = await ObjectBoxManager.create();
+  
   final apiService = KDriveApiService();
   final authRepository = AuthRepository();
-  final syncEngine = SyncEngine(apiService, database);
+  
+  final mediaProcessor = MediaProcessorService(objectBox);
+  final vectorSearch = VectorSearchService(objectBox);
+  
+  final syncEngine = SyncEngine(apiService, database, mediaProcessor: mediaProcessor);
   final aiTaggingService = AITaggingService(database, apiService);
   
   final loggedIn = await authRepository.isLoggedIn();
@@ -71,24 +80,33 @@ void main() async {
 
   runApp(MyApp(
     database: database,
+    objectBox: objectBox,
     syncEngine: syncEngine,
     apiService: apiService,
     authRepository: authRepository,
+    vectorSearch: vectorSearch,
+    mediaProcessor: mediaProcessor,
   ));
 }
 
 class MyApp extends StatelessWidget {
   final AppDatabase database;
+  final ObjectBoxManager objectBox;
   final SyncEngine syncEngine;
   final KDriveApiService apiService;
   final AuthRepository authRepository;
+  final VectorSearchService vectorSearch;
+  final MediaProcessorService mediaProcessor;
 
   const MyApp({
     super.key, 
     required this.database,
+    required this.objectBox,
     required this.syncEngine,
     required this.apiService,
     required this.authRepository,
+    required this.vectorSearch,
+    required this.mediaProcessor,
   });
 
   @override
@@ -99,6 +117,8 @@ class MyApp extends StatelessWidget {
           create: (context) => GalleryBloc(
             database, 
             syncEngine: syncEngine,
+            vectorSearch: vectorSearch,
+            mediaProcessor: mediaProcessor,
           )..add(LoadGallery()),
         ),
       ],

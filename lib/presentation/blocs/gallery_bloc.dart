@@ -2,10 +2,15 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kphoto/core/database/app_database.dart';
 import 'package:kphoto/core/network/auth_repository.dart';
 import 'package:kphoto/core/network/sync_engine.dart';
 import 'package:kphoto/core/services/ai_tagging_service.dart';
+import 'package:kphoto/core/services/vector_search_service.dart';
+import 'package:kphoto/core/services/media_processor_service.dart';
+import 'package:kphoto/core/services/image_embedding_service.dart';
+import 'package:kphoto/core/database/asset_entity.dart';
 import 'package:intl/intl.dart';
 
 part 'gallery_event.dart';
@@ -14,15 +19,22 @@ part 'gallery_state.dart';
 class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
   final AppDatabase db;
   final SyncEngine? syncEngine;
+  final VectorSearchService? vectorSearch;
+  final MediaProcessorService? mediaProcessor;
+  
   StreamSubscription? _photosSubscription;
   Timer? _throttleTimer;
   static const int _pageSize = 200;
 
-  GalleryBloc(this.db, {this.syncEngine}) 
-      : super(const GalleryState()) {
+  GalleryBloc(this.db, {
+    this.syncEngine,
+    this.vectorSearch,
+    this.mediaProcessor,
+  }) : super(const GalleryState()) {
     on<LoadGallery>(_onLoadGallery);
     on<LoadMorePhotos>(_onLoadMorePhotos);
     on<SearchGallery>(_onSearchGallery);
+    on<SemanticSearch>(_onSemanticSearch);
     on<SyncWithKDrive>(_onSyncWithKDrive);
     on<PhotosUpdated>(_onPhotosUpdated);
     on<SyncProgressUpdated>(_onSyncProgressUpdated);
@@ -42,6 +54,8 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     on<StartAiScan>(_onStartAiScan);
     on<AiScanProgressUpdated>(_onAiScanProgressUpdated);
     on<AiScanFinished>(_onAiScanFinished);
+    on<IndexingProgressUpdated>(_onIndexingProgressUpdated);
+    on<IndexingFinished>(_onIndexingFinished);
 
     // We stoppen met het constant monitoren van de gehele tabel bij 30.000 items.
     // In plaats daarvan laden we expliciet bij acties.
@@ -145,10 +159,46 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     emit(state.copyWith(selectedPhotoIds: currentSelection));
   }
 
+  DateTime? _syncStartTime;
+  int? _initialPendingCount;
+
   void _onSyncProgressUpdated(SyncProgressUpdated event, Emitter<GalleryState> emit) async {
-    // Haal ook de nieuwe totaal-count op tijdens de sync voor de teller in Settings
     final count = await db.getTotalPhotoCount(onlyFavorites: state.showOnlyFavorites);
-    emit(state.copyWith(processedCount: event.count, totalPhotoCount: count));
+    
+    String? timeLeft;
+    // We gebruiken 30.000 als conservatieve schatting voor de eerste keer 
+    // om te voorkomen dat we direct op 100% springen.
+    final int estimatedTotal = state.totalPhotoCount > 0 ? state.totalPhotoCount : 30000;
+
+    if (_syncStartTime != null && event.count > 50) {
+      final elapsed = DateTime.now().difference(_syncStartTime!);
+      final itemsLeft = estimatedTotal - event.count;
+      
+      if (itemsLeft > 0) {
+        final msPerItem = elapsed.inMilliseconds / event.count;
+        final secondsLeft = (itemsLeft * msPerItem) / 1000;
+        if (secondsLeft < 3600) {
+          timeLeft = '${(secondsLeft / 60).ceil()} min resteert';
+        }
+      }
+    }
+
+    // UPDATE UI: We updaten de processedCount (voortgang)
+    // De totalPhotoCount wordt pas leidend als de scanning fase voorbij is.
+    emit(state.copyWith(
+      processedCount: event.count, 
+      totalPhotoCount: count,
+      estimatedTimeRemaining: timeLeft,
+    ));
+
+    // Voor de weergave in de gallerij verversen we vaker in het begin
+    final int reloadFrequency = event.count < 1000 ? 50 : 500;
+    
+    if (event.count % reloadFrequency == 0) {
+      final photos = await db.getPhotosPaged(_pageSize, 0, onlyFavorites: state.showOnlyFavorites);
+      final grouped = _groupPhotos(photos, state.viewMode);
+      emit(state.copyWith(photos: photos, groupedPhotos: grouped));
+    }
   }
 
   Future<void> _onLoadGallery(LoadGallery event, Emitter<GalleryState> emit) async {
@@ -199,8 +249,7 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
       if (event.query.isEmpty) {
         photos = await db.getPhotosPaged(_pageSize, 0);
       } else {
-        // Voor zoekopdrachten laden we momenteel de hele match set, 
-        // maar beperken we het resultaat in de DB query als dat nodig is.
+        // Keyword-based search in Drift
         photos = await db.searchPhotos(event.query);
       }
       final grouped = _groupPhotos(photos, state.viewMode);
@@ -215,11 +264,27 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     }
   }
 
+  Future<void> _onSemanticSearch(SemanticSearch event, Emitter<GalleryState> emit) async {
+    // Voorlopig uitgeschakeld tot CLIP modellen aanwezig zijn
+    emit(state.copyWith(status: GalleryStatus.loading, searchQuery: event.query));
+    add(SearchGallery(event.query));
+  }
+
   Future<void> _onSyncWithKDrive(SyncWithKDrive event, Emitter<GalleryState> emit) async {
     final engine = syncEngine;
     if (engine == null) return;
     
-    emit(state.copyWith(status: GalleryStatus.syncing, processedCount: 0));
+    // Bepaal of dit de allereerste sync is
+    final currentPhotoCount = await db.getTotalPhotoCount();
+    final isInitial = currentPhotoCount == 0;
+
+    _syncStartTime = DateTime.now();
+    
+    if (isInitial) {
+      emit(state.copyWith(status: GalleryStatus.initialSync, syncPhase: SyncPhase.scanning, processedCount: 0));
+    } else {
+      emit(state.copyWith(status: GalleryStatus.syncing, processedCount: 0));
+    }
 
     final authRepo = AuthRepository();
     
@@ -236,27 +301,22 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
       }
     }
 
-    // 2. Map ID's ophalen
+    // 2. Map ID's ophalen met versterkte detectie
     List<String> folderIds = await authRepo.getFolderIds();
+    debugPrint('GalleryBloc: Initiële mappen-check: $folderIds');
     
     if (folderIds.isEmpty) {
-      debugPrint('GalleryBloc: Geen mappen lokaal gevonden, check Firestore...');
-      // Geef Firestore even de tijd om de data te synchroniseren (bijv. na verse login)
-      await Future.delayed(const Duration(seconds: 3));
-      folderIds = await authRepo.getFolderIds();
-      
-      // Als we na de wachtperiode nog steeds geen mappen hebben, maar wel token/driveId, 
-      // probeer dan nogmaals de API te initialiseren voor de zekerheid
-      if (folderIds.isNotEmpty && !engine.apiService.isInitialized) {
-        final creds = await authRepo.getCredentials();
-        if (creds['token'] != null && creds['driveId'] != null) {
-          await engine.apiService.initialize(creds['token']!, creds['driveId']!);
-        }
+      // Laatste redding: probeer direct uit storage te lezen
+      final storage = FlutterSecureStorage();
+      final rawIds = await storage.read(key: 'kdrive_folder_ids');
+      if (rawIds != null && rawIds.isNotEmpty) {
+        folderIds = rawIds.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+        debugPrint('GalleryBloc: Mappen hersteld via DirectStorage: $folderIds');
       }
     }
     
     if (folderIds.isEmpty) {
-      debugPrint('GalleryBloc: Nog steeds geen mappen gevonden. Controleer instellingen.');
+      debugPrint('GalleryBloc: FOUT - Echt geen mappen gevonden na alle pogingen.');
       emit(state.copyWith(status: GalleryStatus.success));
       return;
     }
@@ -269,19 +329,34 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     
     try {
       debugPrint('GalleryBloc: Starten sync voor mappen: $folderIds');
-      await engine.sync(folderIds, onProgress: (count) {
-        if (!emit.isDone) {
-          add(SyncProgressUpdated(count));
-        }
-      });
-      emit(state.copyWith(status: GalleryStatus.syncFinished));
+      await engine.sync(
+        folderIds, 
+        isInitialSync: isInitial,
+        onProgress: (count) {
+          if (!emit.isDone) {
+            // Update fase naar downloading als we voorbij de scan zijn
+            final currentPhase = count > 100 && state.syncPhase == SyncPhase.scanning 
+                ? SyncPhase.downloading 
+                : state.syncPhase;
+            add(SyncProgressUpdated(count));
+          }
+        },
+        onIndexingProgress: (current, total) {
+          if (!emit.isDone) {
+            add(IndexingProgressUpdated(current, total));
+          }
+        },
+      );
       
-      // Herlaad de gallerij om de nieuwe thumbnails te tonen
+      if (isInitial) {
+        emit(state.copyWith(isFirstSyncComplete: true));
+      }
+
+      emit(state.copyWith(status: GalleryStatus.syncFinished, syncPhase: SyncPhase.idle));
+      
+      // Belangrijk: AI scan ALLEEN handmatig of als de sync volledig IDLE is.
+      // We triggeren hem hier nu NIET meer automatisch om chaos te voorkomen.
       add(LoadGallery());
-      
-      // Wacht 2 seconden voordat de AI scan start om de UI rust te geven
-      await Future.delayed(const Duration(seconds: 2));
-      add(const StartAiScan(forceAll: false));
 
     } catch (e) {
       debugPrint('GalleryBloc: Sync fout: $e');
@@ -403,6 +478,18 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
 
   void _onAiScanFinished(AiScanFinished event, Emitter<GalleryState> emit) {
     emit(state.copyWith(isAiScanning: false));
+  }
+
+  void _onIndexingProgressUpdated(IndexingProgressUpdated event, Emitter<GalleryState> emit) {
+    emit(state.copyWith(
+      isIndexing: true, 
+      indexingCurrent: event.current, 
+      indexingTotal: event.total
+    ));
+  }
+
+  void _onIndexingFinished(IndexingFinished event, Emitter<GalleryState> emit) {
+    emit(state.copyWith(isIndexing: false));
   }
 
   Future<void> _onStartAiScan(StartAiScan event, Emitter<GalleryState> emit) async {

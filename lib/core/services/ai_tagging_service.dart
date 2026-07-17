@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:kphoto/core/database/app_database.dart';
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:kphoto/core/network/kdrive_api_service.dart';
 import 'package:exif/exif.dart';
@@ -39,16 +39,24 @@ class AITaggingService {
     debugPrint('AITaggingService: Start batch verwerking (forceAll: $forceAll)...');
 
     try {
-      final allPhotos = await _db.getAllPhotos();
+      // Gebruik een database query ipv alles in het geheugen te laden
+      final query = _db.select(_db.photos)
+        ..where((t) => t.localThumbnailPath.isNotNull());
       
-      // UITSLUITEND foto's met een lokale thumbnail verwerken
-      final pending = forceAll 
-          ? allPhotos.where((p) => p.localThumbnailPath != null).toList() 
-          : allPhotos.where((p) => 
-              p.localThumbnailPath != null && (p.aiTags.isEmpty || p.keywords == null)
-            ).toList();
+      if (!forceAll) {
+        // Alleen foto's die nog GEEN keywords hebben (metadata check) 
+        // OF waarvan de AI tags nog leeg zijn.
+        // We controleren ook of ze een thumbnail hebben, anders kunnen we niets analyseren.
+        query.where((t) => t.localThumbnailPath.isNotNull() & (t.keywords.isNull() | t.aiTags.equals('')));
+      }
+      
+      final pending = await query.get();
 
-      debugPrint('AITaggingService: ${pending.length} fotos met thumbnails klaar voor analyse.');
+      if (pending.isEmpty) {
+        debugPrint('AITaggingService: Geen nieuwe fotos om te verwerken.');
+        _isProcessing = false;
+        return;
+      }
       
       int count = 0;
       for (final photo in pending) {
@@ -273,7 +281,8 @@ class AITaggingService {
         fNumber: data['EXIF FNumber'] != null ? Value('f/${data['EXIF FNumber']?.printable}') : const Value.absent(),
         iso: data['EXIF ISOSpeedRatings'] != null ? Value(int.tryParse(data['EXIF ISOSpeedRatings']?.printable ?? '')) : const Value.absent(),
         focalLength: data['EXIF FocalLength'] != null ? Value('${data['EXIF FocalLength']?.printable}mm') : const Value.absent(),
-        keywords: extractedKeywords != null ? Value(extractedKeywords) : const Value.absent(),
+        // We zetten keywords ALTIJD, ook als het leeg is, als markering dat deze foto verwerkt is.
+        keywords: Value(extractedKeywords ?? ''),
       ),
     );
   }
