@@ -7,12 +7,15 @@ import 'package:path_provider/path_provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:io';
 
+import 'package:kphoto/core/network/kdrive_api_service.dart';
 import 'package:kphoto/presentation/screens/folder_browser_screen.dart';
 import 'package:kphoto/presentation/screens/firebase_login_screen.dart';
 import 'package:kphoto/core/services/ai_tagging_service.dart';
 import 'package:kphoto/core/services/biometric_service.dart';
 
 import 'package:kphoto/presentation/screens/trash_screen.dart';
+
+import 'package:kphoto/presentation/screens/connect_kdrive_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -32,6 +35,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _buildNumber = '';
   bool _useBiometrics = false;
   bool _isBiometricsAvailable = false;
+  bool _obscureToken = true;
 
   @override
   void initState() {
@@ -75,16 +79,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _save() async {
+    final token = _tokenController.text.trim();
+    final driveId = _driveIdController.text.trim();
+
     await _auth.saveCredentials(
-      token: _tokenController.text.trim(),
-      driveId: _driveIdController.text.trim(),
+      token: token,
+      driveId: driveId,
       folderId: _folderIds.isNotEmpty ? _folderIds.first : '',
     );
     await _auth.saveFolderIds(_folderIds);
     
+    // Herinitialiseer de API direct met de nieuwe gegevens
+    if (token.isNotEmpty && driveId.isNotEmpty) {
+      await KDriveApiService().initialize(token, driveId);
+    }
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Instellingen opgeslagen')),
+        const SnackBar(content: Text('Instellingen opgeslagen en verbinding ververst')),
       );
       Navigator.pop(context);
     }
@@ -186,7 +198,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _tokenController,
-                    decoration: const InputDecoration(labelText: 'API Token', border: OutlineInputBorder()),
+                    obscureText: _obscureToken,
+                    decoration: InputDecoration(
+                      labelText: 'API Token', 
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscureToken ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => setState(() => _obscureToken = !_obscureToken),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   TextField(
@@ -321,6 +341,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         },
                       );
                     },
+                  ),
+                  const SizedBox(height: 32),
+                  const Text('Account & Verbinding', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    leading: const Icon(Icons.refresh, color: Colors.blue),
+                    title: const Text('kDrive opnieuw koppelen'),
+                    subtitle: const Text('Gebruik de nieuwe inlog-wizard'),
+                    onTap: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('kDrive ontkoppelen?'),
+                          content: const Text('Je huidige instellingen worden gewist en je kunt de nieuwe inlog-flow doorlopen.'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuleren')),
+                            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Ontkoppelen', style: TextStyle(color: Colors.red))),
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        await _auth.disconnectKDrive();
+                        if (mounted) {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(builder: (context) => const ConnectKDriveScreen()),
+                            (route) => false,
+                          );
+                        }
+                      }
+                    },
+                    tileColor: Colors.blue.withOpacity(0.05),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   const SizedBox(height: 32),
                   const Text('App Delen', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),

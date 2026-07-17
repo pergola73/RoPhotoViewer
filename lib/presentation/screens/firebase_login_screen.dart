@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kphoto/core/network/auth_repository.dart';
 import 'package:kphoto/core/services/biometric_service.dart';
 import 'package:kphoto/presentation/screens/gallery_screen.dart';
-import 'package:kphoto/presentation/screens/login_screen.dart';
+import 'package:kphoto/presentation/screens/connect_kdrive_screen.dart';
 import 'package:kphoto/core/network/kdrive_api_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -62,13 +62,10 @@ class _FirebaseLoginScreenState extends State<FirebaseLoginScreen> {
     try {
       if (_isSignUp) {
         await _auth.signUp(_emailController.text, _passwordController.text);
-        // Voor nieuwe gebruikers direct door naar kDrive login
+        // Voor nieuwe gebruikers direct door naar de nieuwe kDrive onboarding
         if (mounted) {
           Navigator.of(context).pushReplacement(MaterialPageRoute(
-            builder: (context) => LoginScreen(
-              apiService: KDriveApiService(),
-              authRepository: _auth,
-            ),
+            builder: (context) => const ConnectKDriveScreen(),
           ));
         }
       } else {
@@ -96,10 +93,7 @@ class _FirebaseLoginScreenState extends State<FirebaseLoginScreen> {
       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => const GalleryScreen()));
     } else {
       Navigator.of(context).pushReplacement(MaterialPageRoute(
-        builder: (context) => LoginScreen(
-          apiService: KDriveApiService(),
-          authRepository: _auth,
-        ),
+        builder: (context) => const ConnectKDriveScreen(),
       ));
     }
   }

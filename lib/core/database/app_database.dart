@@ -149,9 +149,13 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Photo>> getAllPhotos() => (select(photos)..orderBy([(t) => OrderingTerm(expression: t.dateTaken, mode: OrderingMode.desc)])).get();
 
   Future<Set<String>> getAllKdrivePaths() async {
-    final query = select(photos).map((p) => p.kdrivePath);
-    final results = await query.get();
+    final query = selectOnly(photos)..addColumns([photos.kdrivePath]);
+    final results = await query.map((row) => row.read(photos.kdrivePath)!).get();
     return results.toSet();
+  }
+
+  Future<List<Photo>> getPhotosWithoutThumbnails() {
+    return (select(photos)..where((t) => t.localThumbnailPath.isNull())).get();
   }
   
   Future<List<Photo>> getPhotosPaged(int limit, int offset, {bool onlyFavorites = false}) {

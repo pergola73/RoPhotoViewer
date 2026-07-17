@@ -268,23 +268,20 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     }
     
     try {
-      int total = 0;
-      for (var folderId in folderIds) {
-        debugPrint('GalleryBloc: Starten sync voor map ID: $folderId');
-        await engine.sync(folderId, onProgress: (count) {
-          total += count;
-          if (!emit.isDone) {
-            add(SyncProgressUpdated(total));
-          }
-        });
-      }
+      debugPrint('GalleryBloc: Starten sync voor mappen: $folderIds');
+      await engine.sync(folderIds, onProgress: (count) {
+        if (!emit.isDone) {
+          add(SyncProgressUpdated(count));
+        }
+      });
       emit(state.copyWith(status: GalleryStatus.syncFinished));
       
-      // Herlaad de eerste pagina na een sync om nieuwe foto's te tonen
+      // Herlaad de gallerij om de nieuwe thumbnails te tonen
       add(LoadGallery());
       
-      // We starten de AI scan niet meer automatisch hier om interferentie te voorkomen.
-      // De gebruiker kan dit nu handmatig doen in de instellingen voor meer controle.
+      // Wacht 2 seconden voordat de AI scan start om de UI rust te geven
+      await Future.delayed(const Duration(seconds: 2));
+      add(const StartAiScan(forceAll: false));
 
     } catch (e) {
       debugPrint('GalleryBloc: Sync fout: $e');

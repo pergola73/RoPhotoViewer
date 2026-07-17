@@ -51,7 +51,7 @@ class SyncEngine {
 
   KDriveApiService get apiService => _apiService;
 
-  Future<void> sync(String rootFolderId, {Function(int)? onProgress}) async {
+  Future<void> sync(List<String> rootFolderIds, {Function(int)? onProgress}) async {
     if (_isSyncing) return;
     _isSyncing = true;
     
@@ -59,7 +59,7 @@ class SyncEngine {
     await _startForegroundService();
 
     final aiService = AITaggingService(_db, _apiService);
-    debugPrint('Sync: Starten sync vanaf map $rootFolderId...');
+    debugPrint('Sync: Starten sync voor mappen: $rootFolderIds...');
 
     try {
       // Haal alle bestaande IDs op om database-queries in de loop te voorkomen
@@ -70,8 +70,8 @@ class SyncEngine {
       final thumbDir = Directory(p.join(localDir.path, 'thumbnails'));
       if (!thumbDir.existsSync()) thumbDir.createSync(recursive: true);
 
-      final List<String> folderQueue = [rootFolderId];
-      final Set<String> visitedFolders = {rootFolderId};
+      final List<String> folderQueue = List.from(rootFolderIds);
+      final Set<String> visitedFolders = Set.from(rootFolderIds);
       int totalProcessed = 0;
       int totalNew = 0;
 
@@ -80,9 +80,6 @@ class SyncEngine {
         debugPrint('Sync: Scannen map $currentFolderId...');
 
         try {
-          // Haal in één keer alle bekende kdrivePaths op voor deze map om queries te besparen
-          // (Optimalisatie: we checken alleen of we de ID al kennen)
-          
           await for (final batch in _apiService.getChildrenStream(currentFolderId)) {
             final processedResults = await compute(_processBatchInIsolate, batch);
 
@@ -103,10 +100,15 @@ class SyncEngine {
               if (existingIds.contains(fileId)) continue;
 
               totalProcessed++;
+              
+              // Gebruik de datum uit de API resultaten direct als eerste bron
+              // Dit zorgt voor een onmiddellijk correcte tijdlijn
+              final DateTime dateTaken = DateTime.parse(result['dateTaken']);
+
               metadataBuffer.add(PhotosCompanion.insert(
                 fileName: result['name'],
                 kdrivePath: fileId,
-                dateTaken: DateTime.parse(result['dateTaken']),
+                dateTaken: dateTaken,
                 aiTags: List<String>.from(result['tags']),
                 locationName: Value(result['locationName']),
                 latitude: Value(result['lat']),
@@ -114,13 +116,11 @@ class SyncEngine {
                 mediaType: Value(result['mediaType']),
               ));
               totalNew++;
+              existingIds.add(fileId);
             }
 
             if (metadataBuffer.isNotEmpty) {
               await _flushMetadata(metadataBuffer);
-              debugPrint('Sync: $totalNew nieuwe items gevonden tot nu toe...');
-              
-              // Update teller direct voor de UI
               onProgress?.call(totalProcessed);
               
               if (Platform.isAndroid) {
@@ -136,12 +136,10 @@ class SyncEngine {
         }
       }
 
-      debugPrint('Sync: Indexeren klaar. Starten met downloaden van thumbnails voor $totalNew items...');
+      debugPrint('Sync: Indexeren klaar. Starten met downloaden van thumbnails...');
       
-      // Nu pas thumbnails downloaden voor alles wat nog ontbreekt
-      if (totalNew > 0 || totalProcessed > 0) {
-        await _downloadMissingThumbnails(onProgress);
-      }
+      // Nu pas thumbnails downloaden voor alles wat nog ontbreken (eenmalig)
+      await _downloadMissingThumbnails(onProgress);
 
       debugPrint('Sync: Klaar. $totalNew nieuwe media bestanden verwerkt.');
 
@@ -309,25 +307,33 @@ class SyncEngine {
     final localDir = await getApplicationDocumentsDirectory();
     final thumbDir = Directory(p.join(localDir.path, 'thumbnails'));
     
-    // Haal alle foto's op die nog geen lokale thumbnail hebben
-    final allPhotos = await _db.getAllPhotos();
-    final pendingPhotos = allPhotos.where((p) => 
-      p.localThumbnailPath == null || !File(p.localThumbnailPath!).existsSync()
-    ).toList();
+    // Haal alle foto's op zonder thumbnail, gesorteerd van NIEUW naar OUD
+    // Hierdoor worden de foto's die de gebruiker als eerste ziet ook als eerste geladen
+    final pendingPhotos = await (_db.select(_db.photos)
+      ..where((t) => t.localThumbnailPath.isNull())
+      ..orderBy([(t) => OrderingTerm(expression: t.dateTaken, mode: OrderingMode.desc)]))
+      .get();
 
     debugPrint('Sync: Downloaden van ${pendingPhotos.length} ontbrekende thumbnails...');
     
     if (pendingPhotos.isEmpty) return;
 
     int downloaded = 0;
-    const int batchSize = 10; // Iets grotere batches voor thumbnails
+    const int concurrency = 3; 
 
-    for (int i = 0; i < pendingPhotos.length; i += batchSize) {
-      final chunk = pendingPhotos.skip(i).take(batchSize).toList();
+    for (int i = 0; i < pendingPhotos.length; i += concurrency) {
+      final chunk = pendingPhotos.skip(i).take(concurrency).toList();
       
       await Future.wait(chunk.map((photo) async {
         final localThumbPath = p.join(thumbDir.path, 'thumb_${photo.id}.jpg');
         try {
+          // Check of bestand al bestaat (bijv. na crash)
+          if (File(localThumbPath).existsSync() && File(localThumbPath).lengthSync() > 0) {
+            await (_db.update(_db.photos)..where((t) => t.id.equals(photo.id)))
+                .write(PhotosCompanion(localThumbnailPath: Value(localThumbPath)));
+            return;
+          }
+
           await _apiService
               .downloadThumbnail(photo.kdrivePath, localThumbPath)
               .timeout(const Duration(seconds: 30));
@@ -336,27 +342,25 @@ class SyncEngine {
             await (_db.update(_db.photos)..where((t) => t.id.equals(photo.id)))
                 .write(PhotosCompanion(localThumbnailPath: Value(localThumbPath)));
             
-            // Optioneel metadata updaten als dat nog niet gebeurd is
-            if (photo.cameraModel == null) {
+            // Haal altijd EXIF en Locatie op als deze nog niet volledig zijn
+            // Dit is cruciaal voor juiste datum-sortering en zoeken
+            if (photo.cameraModel == null || photo.locationName == null) {
               await updateMetadataFromFile(photo.id, localThumbPath);
             }
           }
-        } catch (e) {
-          // Stille fail voor individuele thumbnails om proces niet te stoppen
-        }
+        } catch (e) { }
       }));
 
       downloaded += chunk.length;
-      
-      // Update status
-      if (Platform.isAndroid) {
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      if (Platform.isAndroid && downloaded % 10 == 0) {
         FlutterForegroundTask.updateService(
           notificationTitle: 'K-Photo Sync',
           notificationText: 'Thumbnails: $downloaded / ${pendingPhotos.length} binnen...',
         );
       }
       
-      // Elke 50 thumbnails geven we een seintje aan de UI
       if (downloaded % 50 == 0) {
         onProgress?.call(downloaded);
       }

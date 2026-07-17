@@ -2,6 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import 'dart:convert';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
 
 class AuthRepository {
   final _storage = const FlutterSecureStorage();
@@ -12,6 +17,25 @@ class AuthRepository {
   static const _keyDriveId = 'kdrive_id';
   static const _keyFolderIds = 'kdrive_folder_ids';
   static const _keyBiometrics = 'use_biometrics';
+  static const _keyVerifier = 'pkce_verifier';
+
+  static const String _clientId = 'd7ed6134-4670-4f92-aab3-94c08d624cc5';
+  static const String _redirectUri = 'com.rvodevelopment.kphoto://oauth';
+  static const String _authUrl = 'https://login.infomaniak.com/authorize';
+  static const String _tokenUrl = 'https://api.infomaniak.com/2/oauth/token';
+
+  // Helper voor PKCE
+  String _generateRandomString(int length) {
+    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+    final random = Random.secure();
+    return List.generate(length, (i) => charset[random.nextInt(charset.length)]).join();
+  }
+
+  String _deriveChallenge(String verifier) {
+    final bytes = utf8.encode(verifier);
+    final digest = sha256.convert(bytes);
+    return base64Url.encode(digest.bytes).replaceAll('=', '');
+  }
 
   // Firebase Auth Methods
   Future<UserCredential?> signIn(String email, String password) async {
@@ -128,8 +152,9 @@ class AuthRepository {
     final list = ids.split(',')
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
+        .toSet() // Verwijder dubbele IDs
         .toList();
-    debugPrint('AuthRepository: Gevonden map ID\'s: $list');
+    debugPrint('AuthRepository: Gevonden unieke map ID\'s: $list');
     return list;
   }
 
@@ -141,5 +166,84 @@ class AuthRepository {
   Future<void> logout() async {
     await _firebaseAuth.signOut();
     await _storage.deleteAll();
+  }
+
+  Future<void> disconnectKDrive() async {
+    await _storage.delete(key: _keyToken);
+    await _storage.delete(key: _keyDriveId);
+    await _storage.delete(key: _keyFolderIds);
+    await _syncToFirestore(); // Slaat de lege staat op in Firestore
+  }
+
+  // OAuth2 Methods
+  Future<bool> connectWithKDrive() async {
+    try {
+      final verifier = _generateRandomString(64);
+      await _storage.write(key: _keyVerifier, value: verifier);
+      final challenge = _deriveChallenge(verifier);
+
+      // Scope tijdelijk minimaal om invalid_scope te debuggen
+      final url = '$_authUrl?client_id=$_clientId'
+          '&redirect_uri=${Uri.encodeComponent(_redirectUri)}'
+          '&response_type=code'
+          '&scope=${Uri.encodeComponent('openid email profile kdrive')}'
+          '&code_challenge=$challenge'
+          '&code_challenge_method=S256';
+      
+      debugPrint('Auth Repository: Start OAuth flow met PKCE...');
+      debugPrint('Auth Repository: Redirect URI is $_redirectUri');
+      
+      final result = await FlutterWebAuth2.authenticate(
+        url: url,
+        callbackUrlScheme: 'com.rvodevelopment.kphoto',
+        options: const FlutterWebAuth2Options(
+          preferEphemeral: true,
+        ),
+      );
+
+      debugPrint('Auth Repository: OAuth result ontvangen: $result');
+      final code = Uri.parse(result).queryParameters['code'];
+      
+      if (code != null) {
+        debugPrint('Auth Repository: Code gevonden, inwisselen voor token...');
+        return await _exchangeCodeForToken(code);
+      } else {
+        final error = Uri.parse(result).queryParameters['error'];
+        debugPrint('Auth Repository: Geen code gevonden in resultaat. Error: $error');
+      }
+    } catch (e) {
+      debugPrint('Auth Repository: Fout tijdens OAuth flow: $e');
+    }
+    return false;
+  }
+
+  Future<bool> _exchangeCodeForToken(String code) async {
+    try {
+      final verifier = await _storage.read(key: _keyVerifier);
+      
+      final response = await Dio().post(_tokenUrl, data: {
+        'grant_type': 'authorization_code',
+        'client_id': _clientId,
+        'redirect_uri': _redirectUri,
+        'code': code,
+        'code_verifier': verifier,
+      });
+
+      debugPrint('Auth Repository: Token exchange response status: ${response.statusCode}');
+
+      if (response.data != null && response.data['access_token'] != null) {
+        final token = response.data['access_token'].toString();
+        await _storage.write(key: _keyToken, value: token);
+        await _storage.delete(key: _keyVerifier);
+        debugPrint('Auth Repository: Token succesvol opgeslagen via PKCE');
+        return true;
+      }
+    } on DioException catch (e) {
+      debugPrint('Auth Repository: Token exchange DioError: ${e.message}');
+      debugPrint('Auth Repository: Response data: ${e.response?.data}');
+    } catch (e) {
+      debugPrint('Auth Repository: Onbekende fout bij token exchange: $e');
+    }
+    return false;
   }
 }

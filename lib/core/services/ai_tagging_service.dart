@@ -36,16 +36,20 @@ class AITaggingService {
     if (_isProcessing) return;
     _isProcessing = true;
 
+    debugPrint('AITaggingService: Start batch verwerking (forceAll: $forceAll)...');
+
     try {
       final allPhotos = await _db.getAllPhotos();
+      
+      // UITSLUITEND foto's met een lokale thumbnail verwerken
       final pending = forceAll 
-          ? allPhotos 
+          ? allPhotos.where((p) => p.localThumbnailPath != null).toList() 
           : allPhotos.where((p) => 
-              (p.locationName == null && p.latitude == null) || 
-              p.aiTags.isEmpty ||
-              p.keywords == null
+              p.localThumbnailPath != null && (p.aiTags.isEmpty || p.keywords == null)
             ).toList();
 
+      debugPrint('AITaggingService: ${pending.length} fotos met thumbnails klaar voor analyse.');
+      
       int count = 0;
       for (final photo in pending) {
         if (forceAll) {
@@ -76,47 +80,11 @@ class AITaggingService {
 
   Future<void> processSinglePhoto(Photo photo) async {
     try {
-      final tempDir = await getTemporaryDirectory();
-      
-      // EXIF Metadata alleen ophalen als we nog geen camera model hebben
-      if (photo.cameraModel == null) {
-        final fragmentPath = p.join(tempDir.path, 'exif_frag_${photo.id}.tmp');
-        final pBytes = await _api.downloadPartialFile(photo.kdrivePath, bytes: 131072);
-        if (pBytes != null) {
-          final file = File(fragmentPath);
-          await file.writeAsBytes(pBytes);
-          final data = await readExifFromFile(file);
-          if (data.isNotEmpty) {
-            await _saveMetadataAndLocation(photo, data);
-          }
-          if (await file.exists()) await file.delete();
-        }
-      }
-
-      if (photo.mediaType == 'image') {
-        File? aiInputFile;
-        bool isTempFile = false;
-
-        // PRIORITEIT: Gebruik de lokale thumbnail (snel & data-besparend)
-        if (photo.localThumbnailPath != null && File(photo.localThumbnailPath!).existsSync()) {
-          aiInputFile = File(photo.localThumbnailPath!);
-        } 
-        // FALLBACK: Alleen downloaden als er echt geen thumbnail is
-        else {
-          final aiFragBytes = await _api.downloadPartialFile(photo.kdrivePath, bytes: 512000); // Kleiner fragment is genoeg
-          if (aiFragBytes != null) {
-            final aiFile = File(p.join(tempDir.path, 'ai_small_${photo.id}.tmp'));
-            await aiFile.writeAsBytes(aiFragBytes);
-            aiInputFile = aiFile;
-            isTempFile = true;
-          }
-        }
-        
-        if (aiInputFile != null) {
+      // AI werkt UITSLUITEND met de lokale thumbnail. Geen download van fragmenten meer.
+      if (photo.mediaType == 'image' && photo.localThumbnailPath != null) {
+        final aiInputFile = File(photo.localThumbnailPath!);
+        if (aiInputFile.existsSync()) {
           await _applyAiLabeling(photo, aiInputFile);
-          if (isTempFile && await aiInputFile.exists()) {
-            await aiInputFile.delete();
-          }
         }
       }
     } catch (e) {
@@ -130,16 +98,18 @@ class AITaggingService {
       final labels = await _labeler?.processImage(inputImage);
       final faces = await _faceDetector?.processImage(inputImage);
       
-      final Set<String> allTags = Set<String>.from(photo.aiTags);
+      // We beginnen met een schone set tags om oude Engelse tags te verwijderen
+      final Set<String> allTags = {};
 
       if (labels != null && labels.isNotEmpty) {
         final List<String> newTags = labels
             .where((l) => l.confidence > 0.45)
             .map((l) => _translateToDutch(l.label))
+            .where((tag) => tag.isNotEmpty)
             .toList();
             
         for (var tag in newTags) {
-          if (tag.isNotEmpty) allTags.add(tag.toLowerCase());
+          allTags.add(tag.toLowerCase());
         }
       }
 
@@ -147,6 +117,12 @@ class AITaggingService {
         allTags.add('persoon');
         if (faces.length > 1) allTags.add('groep');
         await _saveDetectedFaces(photo, file, faces);
+      }
+      
+      // Voeg ook locatie-gebaseerde tags weer toe als die er waren
+      if (photo.locationName != null) {
+        final locParts = photo.locationName!.split(',').map((s) => s.trim().toLowerCase()).where((s) => s.length > 1);
+        allTags.addAll(locParts);
       }
       
       await (_db.update(_db.photos)..where((t) => t.id.equals(photo.id))).write(
@@ -490,6 +466,64 @@ class AITaggingService {
       'bathroom': 'Badkamer',
       'bedroom': 'Slaapkamer',
       'living room': 'Woonkamer',
+      'clothing': 'Kleding',
+      'footwear': 'Schoeisel',
+      'shoe': 'Schoen',
+      'sleeve': 'Mouw',
+      'collar': 'Kraag',
+      't-shirt': 'T-shirt',
+      'outerwear': 'Bovenkleding',
+      'dress': 'Jurk',
+      'smile': 'Glimlach',
+      'happy': 'Blij',
+      'face': 'Gezicht',
+      'facial expression': 'Gezichtsuitdrukking',
+      'portrait': 'Portret',
+      'leisure': 'Vrije tijd',
+      'fun': 'Plezier',
+      'child': 'Kind',
+      'toddler': 'Peuter',
+      'baby': 'Baby',
+      'boy': 'Jongen',
+      'girl': 'Meisje',
+      'man': 'Man',
+      'woman': 'Vrouw',
+      'people': 'Mensen',
+      'team': 'Team',
+      'group': 'Groep',
+      'vacation': 'Vakantie',
+      'tourism': 'Toerisme',
+      'travel': 'Reizen',
+      'nature': 'Natuur',
+      'flower': 'Bloem',
+      'plant': 'Plant',
+      'tree': 'Boom',
+      'grass': 'Gras',
+      'mountain': 'Berg',
+      'sky': 'Lucht',
+      'cloud': 'Wolk',
+      'water': 'Water',
+      'sea': 'Zee',
+      'ocean': 'Oceaan',
+      'beach': 'Strand',
+      'sand': 'Zand',
+      'sunset': 'Zonsondergang',
+      'sunrise': 'Zonsopkomst',
+      'night': 'Nacht',
+      'car': 'Auto',
+      'vehicle': 'Voertuig',
+      'bicycle': 'Fiets',
+      'motorcycle': 'Motor',
+      'food': 'Eten',
+      'drink': 'Drinken',
+      'table': 'Tafel',
+      'furniture': 'Meubels',
+      'interior': 'Interieur',
+      'house': 'Huis',
+      'building': 'Gebouw',
+      'street': 'Straat',
+      'urban': 'Stedelijk',
+      'city': 'Stad',
     };
     final String searchLabel = label.toLowerCase();
     

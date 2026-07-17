@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:kphoto/core/network/auth_repository.dart';
 
 class KDriveApiService {
   // Singleton pattern om overal dezelfde verbinding te garanderen
@@ -34,8 +35,51 @@ class KDriveApiService {
 
   bool get isInitialized => _token != null && _driveId != null;
 
+  /// Stelt alleen de token in (handig voor de onboarding wizard)
+  void setToken(String token) {
+    _token = token;
+    _dio.options.headers['Authorization'] = 'Bearer $_token';
+  }
+
+  /// Haalt alle beschikbare kDrives op voor de huidige gebruiker
+  Future<List<Map<String, dynamic>>> getAvailableDrives() async {
+    if (_token == null) return [];
+    try {
+      debugPrint('kDrive API: Proberen drives op te halen via /2/drive...');
+      final response = await _dio.get('/2/drive');
+      if (response.data is Map && response.data['data'] != null) {
+        return List<Map<String, dynamic>>.from(response.data['data']);
+      }
+    } catch (e) {
+      debugPrint('kDrive API: /2/drive mislukt, proberen /2/kdrive...');
+      try {
+        final response = await _dio.get('/2/kdrive');
+        if (response.data is Map && response.data['data'] != null) {
+          return List<Map<String, dynamic>>.from(response.data['data']);
+        }
+      } catch (e2) {
+        debugPrint('kDrive API: Beide endpoints mislukt.');
+        rethrow;
+      }
+    }
+    return [];
+  }
+
   Stream<List<dynamic>> getChildrenStream(String directoryId) async* {
-    if (!isInitialized) return;
+    if (!isInitialized) {
+      // Probeer alsnog te laden vanuit AuthRepository als we niet initialized zijn
+      final auth = AuthRepository();
+      final creds = await auth.getCredentials();
+      if (creds['token'] != null && creds['driveId'] != null) {
+        await initialize(creds['token']!, creds['driveId']!);
+      } else {
+        debugPrint('kDrive API v3: Error - Niet geinitialiseerd en geen credentials gevonden.');
+        return;
+      }
+    }
+
+    // Dubbele check: zorg dat de header aanwezig is
+    _dio.options.headers['Authorization'] = 'Bearer $_token';
 
     String? cursor;
     bool hasMore = true;
@@ -84,6 +128,12 @@ class KDriveApiService {
           hasMore = false;
         }
       } catch (e) {
+        if (e is DioException && (e.response?.statusCode == 401 || e.response?.statusCode == 403)) {
+          debugPrint('kDrive API v3: Autorisatie fout (401/403). Check je token of scopes.');
+          hasMore = false;
+          break;
+        }
+
         if (retryCount < 5) {
           retryCount++;
           final waitSeconds = retryCount * 5; 
@@ -102,35 +152,51 @@ class KDriveApiService {
   Stream<List<dynamic>> listFilesStream(String directoryId) => getChildrenStream(directoryId);
 
   Future<void> downloadFile(String fileId, String localPath) async {
-    try {
-      final response = await _dio.get(
-        '/2/drive/$_driveId/files/$fileId/download',
-        options: Options(
-          responseType: ResponseType.bytes,
-          followRedirects: true,
-        ),
-      );
+    int retryCount = 0;
+    while (retryCount < 3) {
+      try {
+        final response = await _dio.get(
+          '/2/drive/$_driveId/files/$fileId/download',
+          options: Options(
+            responseType: ResponseType.bytes,
+            followRedirects: true,
+            validateStatus: (status) => status != null && status < 500,
+          ),
+        );
 
-      final data = response.data;
-      if (data is List<int> && data.length < 2000) {
-        try {
-          final content = utf8.decode(data);
-          final decoded = json.decode(content);
-          if (decoded is Map && decoded['data'] != null && decoded['data']['url'] != null) {
-            final url = decoded['data']['url'].toString();
-            await Dio().download(url, localPath);
-            return;
-          }
-        } catch (_) {}
-      }
+        if (response.statusCode == 429) {
+          debugPrint('kDrive API: Rate limit hit voor bestand $fileId, wachten...');
+          await Future.delayed(const Duration(seconds: 15));
+          retryCount++;
+          continue;
+        }
 
-      if (data is List<int>) {
-        final file = File(localPath);
-        await file.writeAsBytes(data);
+        final data = response.data;
+        if (data is List<int> && data.length < 2000) {
+          try {
+            final content = utf8.decode(data);
+            final decoded = json.decode(content);
+            if (decoded is Map && decoded['data'] != null && decoded['data']['url'] != null) {
+              final url = decoded['data']['url'].toString();
+              await Dio().download(url, localPath);
+              return;
+            }
+          } catch (_) {}
+        }
+
+        if (data is List<int>) {
+          final file = File(localPath);
+          await file.writeAsBytes(data);
+          return;
+        }
+      } catch (e) {
+        retryCount++;
+        if (retryCount >= 3) {
+          debugPrint('kDrive API: Download mislukt na 3 pogingen voor $fileId: $e');
+          rethrow;
+        }
+        await Future.delayed(Duration(seconds: retryCount * 5));
       }
-    } catch (e) {
-      debugPrint('kDrive API: Download error: $e');
-      rethrow;
     }
   }
 
