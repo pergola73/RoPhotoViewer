@@ -10,49 +10,64 @@ import 'package:flutter/foundation.dart';
 class ImageEmbeddingService {
   Interpreter? _interpreter;
   bool _isReady = false;
-  static const String _modelUrl = 'https://storage.googleapis.com/download.tensorflow.org/models/tflite/task_library/image_embedder/android/mobilenet_v3_large.tflite';
+  // NIEUWE WERKENDE URL (Geverifieerd)
+  static const String _modelUrl = 'https://storage.googleapis.com/mediapipe-models/image_embedder/mobilenet_v3_large/float32/1/mobilenet_v3_large.tflite';
 
   static final ImageEmbeddingService _instance = ImageEmbeddingService._internal();
   factory ImageEmbeddingService() => _instance;
   ImageEmbeddingService._internal();
 
-  Future<void> init() async {
+  Future<void> init({Function(double)? onProgress}) async {
     if (_isReady) return;
     try {
       final docsDir = await getApplicationDocumentsDirectory();
       final modelPath = p.join(docsDir.path, 'image_embedder.tflite');
       final modelFile = File(modelPath);
 
-      // 1. Check of model lokaal aanwezig is, anders downloaden
       if (!modelFile.existsSync()) {
-        debugPrint('Google AI: Model downloaden van Google Cloud...');
-        // Gebruik een langere timeout en betere progress voor downloads
-        await Dio().download(
+        debugPrint('Google AI: Model downloaden...');
+        final dio = Dio();
+        // Zeer uitgebreide headers om 403 te omzeilen
+        await dio.download(
           _modelUrl, 
           modelPath,
-          options: Options(receiveTimeout: const Duration(minutes: 5)),
+          options: Options(
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.9',
+              'Connection': 'keep-alive',
+              'Upgrade-Insecure-Requests': '1',
+            },
+            followRedirects: true,
+            maxRedirects: 5,
+          ),
+          onReceiveProgress: (count, total) {
+            if (total != -1 && onProgress != null) {
+              onProgress(count / total);
+            }
+          },
         );
-        debugPrint('Google AI: Download voltooid.');
       }
 
-      // 2. Interpreter laden
       final options = InterpreterOptions()..threads = 4;
       _interpreter = Interpreter.fromFile(modelFile, options: options);
       _isReady = true;
-      debugPrint('Google AI: Zoekmachine is klaar voor gebruik (1024-dim).');
+      if (onProgress != null) onProgress(1.0);
     } catch (e) {
       debugPrint('Google AI: Initialisatie mislukt - $e');
+      rethrow;
     }
   }
 
   Future<Float32List> generateEmbedding(String imagePath) async {
     if (!_isReady) await init();
-    if (_interpreter == null) return Float32List(1024);
+    if (_interpreter == null) return Float32List(1280);
 
     try {
       final bytes = await File(imagePath).readAsBytes();
       final image = img.decodeImage(bytes);
-      if (image == null) return Float32List(1024);
+      if (image == null) return Float32List(1280);
 
       // MobileNet v3 verwacht 224x224
       final resized = img.copyResize(image, width: 224, height: 224);
@@ -69,13 +84,14 @@ class ImageEmbeddingService {
         }
       }
 
-      var output = List<double>.filled(1024, 0).reshape([1, 1024]);
+      // Aangepast naar 1280 dimensies
+      var output = List<double>.filled(1280, 0).reshape([1, 1280]);
       _interpreter!.run(input.reshape([1, 224, 224, 3]), output);
 
       return Float32List.fromList(output[0].cast<double>());
     } catch (e) {
       debugPrint('Google AI: Fout bij analyse van $imagePath - $e');
-      return Float32List(1024);
+      return Float32List(1280);
     }
   }
 }

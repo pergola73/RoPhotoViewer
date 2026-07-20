@@ -14,6 +14,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kphoto/presentation/blocs/gallery_bloc.dart';
 
@@ -118,20 +119,26 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
           PhotosCompanion(localHighResPath: Value(localPath)),
         );
         
-        // DIRECT DE FOTO TONEN
+        // CRUCIAAL: Update alleen het specifieke veld in de huidige state
+        // om de zojuist opgehaalde locationName niet te overschrijven
         setState(() {
-          widget.photos[index] = photo.copyWith(localHighResPath: Value(localPath));
+          widget.photos[index] = widget.photos[index].copyWith(
+            localHighResPath: Value(localPath)
+          );
         });
 
-        // Metadata op de achtergrond verversen, NIET wachten
         if (mounted) {
           final syncEngine = BlocProvider.of<GalleryBloc>(context).syncEngine;
           if (syncEngine != null) {
             syncEngine.updateMetadataFromFile(photo.id, localPath).then((_) async {
               if (mounted) {
-                final updatedPhoto = await (db.select(db.photos)..where((t) => t.id.equals(photo.id))).getSingle();
+                final updatedFromDb = await (db.select(db.photos)..where((t) => t.id.equals(photo.id))).getSingle();
+                if (!mounted) return;
                 setState(() {
-                  widget.photos[index] = updatedPhoto;
+                  // Voeg nieuwe metadata samen met wat we al in de UI hebben (zoals de locatie)
+                  widget.photos[index] = updatedFromDb.copyWith(
+                    locationName: Value(widget.photos[index].locationName ?? updatedFromDb.locationName)
+                  );
                 });
               }
             });
@@ -532,17 +539,26 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                 title: const Text('Bestandsnaam'),
                 subtitle: Text(photo.fileName),
               ),
+              if (photo.kdriveFolderName != null)
+                ListTile(
+                  leading: const Icon(Icons.folder_open_outlined),
+                  title: const Text('Map in kDrive'),
+                  subtitle: Text(photo.kdriveFolderName!),
+                ),
               ListTile(
                 leading: const Icon(Icons.calendar_today),
                 title: const Text('Datum genomen'),
                 subtitle: Text(DateFormat('d MMMM yyyy HH:mm', 'nl_NL').format(photo.dateTaken)),
+                trailing: const Icon(Icons.edit, size: 18),
+                onTap: () => _editDate(photo),
               ),
-              if (photo.keywords != null && photo.keywords!.isNotEmpty)
-                ListTile(
-                  leading: const Icon(Icons.label_outline),
-                  title: const Text('Keywords'),
-                  subtitle: Text(photo.keywords!),
-                ),
+              ListTile(
+                leading: const Icon(Icons.label_outline),
+                title: const Text('Keywords'),
+                subtitle: Text(photo.keywords ?? 'Geen keywords'),
+                trailing: const Icon(Icons.edit, size: 18),
+                onTap: () => _editKeywords(photo),
+              ),
               if (photo.locationName != null)
                 ListTile(
                   leading: const Icon(Icons.map_outlined),
@@ -663,6 +679,56 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
         ),
       ),
     );
+  }
+
+  void _editDate(Photo photo) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: photo.dateTaken,
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != photo.dateTaken && mounted) {
+      final TimeOfDay? time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(photo.dateTaken),
+      );
+      if (time != null && mounted) {
+        final finalDate = DateTime(picked.year, picked.month, picked.day, time.hour, time.minute);
+        context.read<GalleryBloc>().add(UpdatePhotoMetadata(photo.id, date: finalDate));
+        setState(() {
+          widget.photos[_currentIndex] = photo.copyWith(dateTaken: finalDate);
+        });
+        Navigator.pop(context); // Sluit info sheet
+      }
+    }
+  }
+
+  void _editKeywords(Photo photo) async {
+    final controller = TextEditingController(text: photo.keywords);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Keywords aanpassen'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Bijv: vakantie, familie, auto'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuleren')),
+          TextButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Opslaan')),
+        ],
+      ),
+    );
+
+    if (result != null && mounted) {
+      context.read<GalleryBloc>().add(UpdatePhotoMetadata(photo.id, keywords: result));
+      setState(() {
+        widget.photos[_currentIndex] = photo.copyWith(keywords: Value(result));
+      });
+      Navigator.pop(context); // Sluit info sheet
+    }
   }
 
   Future<void> _openInMaps(double? lat, double? lon) async {

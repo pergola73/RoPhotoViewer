@@ -78,16 +78,25 @@ class _TrashScreenState extends State<TrashScreen> {
                       itemCount: state.trashItems.length,
                       itemBuilder: (context, index) {
                         final item = state.trashItems[index];
-                        final String id = item['id'].toString();
-                        final String name = item['name'] ?? 'Onbekend';
+                        final String id = (item['id'] ?? '').toString();
+                        final String name = (item['name'] ?? 'Onbekend').toString();
                         final bool isSelected = state.selectedTrashIds.contains(id);
-                        final String? deletedAtStr = item['deleted_at'];
+                        
+                        dynamic deletedAtRaw = item['deleted_at'];
                         String subtitle = 'Verwijderd op: Onbekend';
                         
-                        if (deletedAtStr != null) {
+                        if (deletedAtRaw != null) {
                           try {
-                            final dt = DateTime.parse(deletedAtStr);
-                            subtitle = 'Verwijderd op: ${DateFormat('d MMMM yyyy HH:mm', 'nl_NL').format(dt)}';
+                            DateTime? dt;
+                            if (deletedAtRaw is num) {
+                              dt = DateTime.fromMillisecondsSinceEpoch(deletedAtRaw.toInt() * 1000);
+                            } else {
+                              dt = DateTime.tryParse(deletedAtRaw.toString());
+                            }
+                            
+                            if (dt != null) {
+                              subtitle = 'Verwijderd op: ${DateFormat('d MMMM yyyy HH:mm', 'nl_NL').format(dt)}';
+                            }
                           } catch (_) {}
                         }
 

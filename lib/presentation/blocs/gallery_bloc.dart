@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
@@ -11,6 +12,7 @@ import 'package:kphoto/core/services/vector_search_service.dart';
 import 'package:kphoto/core/services/media_processor_service.dart';
 import 'package:kphoto/core/services/image_embedding_service.dart';
 import 'package:kphoto/core/database/asset_entity.dart';
+import 'package:kphoto/core/models/sync_phase.dart';
 import 'package:intl/intl.dart';
 
 part 'gallery_event.dart';
@@ -40,6 +42,7 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     on<SyncProgressUpdated>(_onSyncProgressUpdated);
     on<ChangeViewMode>(_onChangeViewMode);
     on<ToggleFavoriteFilter>(_onToggleFavoriteFilter);
+    on<ToggleSelectedPhotosFavorite>(_onToggleSelectedPhotosFavorite);
     on<TogglePhotoSelection>(_onTogglePhotoSelection);
     on<SelectAll>(_onSelectAll);
     on<SelectSection>(_onSelectSection);
@@ -51,6 +54,7 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     on<ClearTrashSelection>(_onClearTrashSelection);
     on<DeleteSelectedFromTrash>(_onDeleteSelectedFromTrash);
     on<EmptyTrash>(_onEmptyTrash);
+    on<UpdatePhotoMetadata>(_onUpdatePhotoMetadata);
     on<StartAiScan>(_onStartAiScan);
     on<AiScanProgressUpdated>(_onAiScanProgressUpdated);
     on<AiScanFinished>(_onAiScanFinished);
@@ -114,6 +118,21 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     add(LoadGallery());
   }
 
+  void _onToggleSelectedPhotosFavorite(ToggleSelectedPhotosFavorite event, Emitter<GalleryState> emit) async {
+    if (state.selectedPhotoIds.isEmpty) return;
+    
+    // We kijken naar de eerste geselecteerde foto om te bepalen of we alles AAN of UIT zetten
+    final firstPhoto = state.photos.firstWhere((p) => state.selectedPhotoIds.contains(p.id));
+    final bool newState = !firstPhoto.isFavorite;
+
+    for (var id in state.selectedPhotoIds) {
+      await db.toggleFavorite(id, newState);
+    }
+
+    emit(state.copyWith(selectedPhotoIds: {})); // Wis selectie na actie
+    add(LoadGallery()); // Ververs UI
+  }
+
   void _onTogglePhotoSelection(TogglePhotoSelection event, Emitter<GalleryState> emit) {
     final currentSelection = Set<int>.from(state.selectedPhotoIds);
     if (currentSelection.contains(event.photoId)) {
@@ -160,14 +179,13 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
   }
 
   DateTime? _syncStartTime;
+  DateTime? _lastAutoSync;
   int? _initialPendingCount;
 
   void _onSyncProgressUpdated(SyncProgressUpdated event, Emitter<GalleryState> emit) async {
     final count = await db.getTotalPhotoCount(onlyFavorites: state.showOnlyFavorites);
     
     String? timeLeft;
-    // We gebruiken 30.000 als conservatieve schatting voor de eerste keer 
-    // om te voorkomen dat we direct op 100% springen.
     final int estimatedTotal = state.totalPhotoCount > 0 ? state.totalPhotoCount : 30000;
 
     if (_syncStartTime != null && event.count > 50) {
@@ -183,15 +201,14 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
       }
     }
 
-    // UPDATE UI: We updaten de processedCount (voortgang)
-    // De totalPhotoCount wordt pas leidend als de scanning fase voorbij is.
     emit(state.copyWith(
       processedCount: event.count, 
       totalPhotoCount: count,
       estimatedTimeRemaining: timeLeft,
+      syncPhase: event.phase ?? state.syncPhase,
+      isSyncing: true,
     ));
 
-    // Voor de weergave in de gallerij verversen we vaker in het begin
     final int reloadFrequency = event.count < 1000 ? 50 : 500;
     
     if (event.count % reloadFrequency == 0) {
@@ -274,16 +291,22 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     final engine = syncEngine;
     if (engine == null) return;
     
-    // Bepaal of dit de allereerste sync is
+    final now = DateTime.now();
+    if (!event.isManual && _lastAutoSync != null && now.difference(_lastAutoSync!).inMinutes < 30) {
+      debugPrint('GalleryBloc: Auto-sync overgeslagen (cooldown actief)');
+      return;
+    }
+    _lastAutoSync = now;
+    
     final currentPhotoCount = await db.getTotalPhotoCount();
     final isInitial = currentPhotoCount == 0;
 
     _syncStartTime = DateTime.now();
     
     if (isInitial) {
-      emit(state.copyWith(status: GalleryStatus.initialSync, syncPhase: SyncPhase.scanning, processedCount: 0));
+      emit(state.copyWith(status: GalleryStatus.initialSync, syncPhase: SyncPhase.scanning, processedCount: 0, isSyncing: true, isManualSync: true));
     } else {
-      emit(state.copyWith(status: GalleryStatus.syncing, processedCount: 0));
+      emit(state.copyWith(status: GalleryStatus.syncing, syncPhase: SyncPhase.scanning, processedCount: 0, isSyncing: true, isManualSync: event.isManual));
     }
 
     final authRepo = AuthRepository();
@@ -332,13 +355,9 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
       await engine.sync(
         folderIds, 
         isInitialSync: isInitial,
-        onProgress: (count) {
+        onProgress: (count, phase) {
           if (!emit.isDone) {
-            // Update fase naar downloading als we voorbij de scan zijn
-            final currentPhase = count > 100 && state.syncPhase == SyncPhase.scanning 
-                ? SyncPhase.downloading 
-                : state.syncPhase;
-            add(SyncProgressUpdated(count));
+            add(SyncProgressUpdated(count, phase: phase));
           }
         },
         onIndexingProgress: (current, total) {
@@ -352,7 +371,7 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
         emit(state.copyWith(isFirstSyncComplete: true));
       }
 
-      emit(state.copyWith(status: GalleryStatus.syncFinished, syncPhase: SyncPhase.idle));
+      emit(state.copyWith(status: GalleryStatus.syncFinished, syncPhase: SyncPhase.idle, isSyncing: false));
       
       // Belangrijk: AI scan ALLEEN handmatig of als de sync volledig IDLE is.
       // We triggeren hem hier nu NIET meer automatisch om chaos te voorkomen.
@@ -360,10 +379,8 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
 
     } catch (e) {
       debugPrint('GalleryBloc: Sync fout: $e');
-      emit(state.copyWith(status: GalleryStatus.failure));
-    } finally {
       if (!emit.isDone) {
-        emit(state.copyWith(status: GalleryStatus.success));
+        emit(state.copyWith(status: GalleryStatus.failure));
       }
     }
   }
@@ -472,6 +489,12 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     }
   }
 
+  Future<void> _onUpdatePhotoMetadata(UpdatePhotoMetadata event, Emitter<GalleryState> emit) async {
+    await db.updatePhotoMetadata(event.photoId, date: event.date, keywords: event.keywords);
+    // Ververs de gallerij zodat de foto op de nieuwe plek staat
+    add(LoadGallery());
+  }
+
   void _onAiScanProgressUpdated(AiScanProgressUpdated event, Emitter<GalleryState> emit) {
     emit(state.copyWith(aiScanCurrent: event.current, aiScanTotal: event.total));
   }
@@ -495,18 +518,23 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
   Future<void> _onStartAiScan(StartAiScan event, Emitter<GalleryState> emit) async {
     if (state.isAiScanning) return;
     
-    emit(state.copyWith(isAiScanning: true, aiScanCurrent: 0, aiScanTotal: 0));
+    emit(state.copyWith(isAiScanning: true, indexingCurrent: 0, indexingTotal: 0));
     
-    final api = syncEngine?.apiService;
-    final aiService = AITaggingService(db, api);
-    
-    // Start de scan op de achtergrond. Omdat we in een Bloc zitten, 
-    // gebruiken we geen 'await' om de UI niet te blokkeren voor andere events.
-    unawaited(aiService.processPendingPhotos(
-      forceAll: event.forceAll,
-      onProgress: (current, total) {
-        add(AiScanProgressUpdated(current, total));
-      },
-    ).then((_) => add(AiScanFinished())));
+    if (mediaProcessor != null) {
+      final photos = await db.getAllPhotos();
+      final paths = photos
+          .where((p) => p.localThumbnailPath != null && File(p.localThumbnailPath!).existsSync())
+          .map((p) => p.localThumbnailPath!)
+          .toList();
+          
+      if (paths.isNotEmpty) {
+        unawaited(mediaProcessor!.processNewFiles(
+          paths, 
+          onProgress: (current, total) => add(IndexingProgressUpdated(current, total))
+        ).then((_) => add(IndexingFinished())));
+      } else {
+        emit(state.copyWith(isAiScanning: false));
+      }
+    }
   }
 }

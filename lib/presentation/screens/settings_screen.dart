@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kphoto/core/network/auth_repository.dart';
+import 'package:kphoto/core/database/app_database.dart';
 import 'package:kphoto/presentation/blocs/gallery_bloc.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
 
 import 'package:kphoto/core/network/kdrive_api_service.dart';
@@ -16,6 +19,7 @@ import 'package:kphoto/core/services/ai_tagging_service.dart';
 import 'package:kphoto/core/services/biometric_service.dart';
 import 'package:kphoto/presentation/screens/trash_screen.dart';
 import 'package:kphoto/presentation/screens/connect_kdrive_screen.dart';
+import 'package:kphoto/core/services/image_embedding_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -30,7 +34,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _driveIdController = TextEditingController();
   final _urlController = TextEditingController();
   List<String> _folderIds = [];
+  Map<String, int> _folderPhotoCounts = {};
   bool _isLoading = true;
+  double _aiDownloadProgress = 0.0;
+  bool _isAiDownloading = false;
   String _version = '';
   String _buildNumber = '';
   bool _useBiometrics = false;
@@ -68,11 +75,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadCredentials() async {
     final creds = await _auth.getCredentials();
     final ids = await _auth.getFolderIds();
+    final db = AppDatabase();
+    Map<String, int> counts = {};
+    for (var id in ids) {
+      counts[id] = await db.getPhotoCountForFolder(id);
+    }
     if (mounted) {
       setState(() {
         _tokenController.text = creds['token'] ?? '';
         _driveIdController.text = creds['driveId'] ?? '';
         _folderIds = ids;
+        _folderPhotoCounts = counts;
         _isLoading = false;
       });
     }
@@ -164,6 +177,135 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _createBackup() async {
+    setState(() => _isLoading = true);
+    try {
+      final dbFolder = await getApplicationDocumentsDirectory();
+      final dbFile = File(p.join(dbFolder.path, 'db.sqlite'));
+      
+      if (!await dbFile.exists()) {
+        throw Exception('Database bestand niet gevonden');
+      }
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('Niet ingelogd bij Firebase');
+
+      debugPrint('Firebase Storage: Starten backup naar bucket: ${FirebaseStorage.instance.bucket}');
+
+      // Firebase Storage Backup met specifiekere metadata en error handling
+      final storageRef = FirebaseStorage.instance.ref().child('backups/${user.uid}/index_backup.sqlite');
+      
+      final uploadTask = storageRef.putFile(
+        dbFile,
+        SettableMetadata(contentType: 'application/x-sqlite3'),
+      );
+
+      // Monitor voortgang voor extra debugging
+      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+        debugPrint('Firebase Storage: Status ${snapshot.state} (${snapshot.bytesTransferred}/${snapshot.totalBytes})');
+      });
+
+      await uploadTask;
+      
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Index backup succesvol opgeslagen in Firebase Cloud')));
+    } catch (e) {
+      debugPrint('Firebase Storage FOUT: $e');
+      if (mounted) {
+        String errorMsg = e.toString();
+        if (errorMsg.contains('404')) {
+          errorMsg = 'Firebase Storage bucket niet gevonden. Controleer of Storage is geactiveerd in de Firebase Console.';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Cloud backup mislukt: $errorMsg')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _exportLocalBackup() async {
+    setState(() => _isLoading = true);
+    try {
+      final dbFolder = await getApplicationDocumentsDirectory();
+      final dbFile = File(p.join(dbFolder.path, 'db.sqlite'));
+      
+      // Zoek de openbare download map
+      Directory? downloadsDir;
+      if (Platform.isAndroid) {
+        downloadsDir = Directory('/storage/emulated/0/Download');
+      } else {
+        downloadsDir = await getDownloadsDirectory();
+      }
+
+      if (downloadsDir != null && await dbFile.exists()) {
+        final exportPath = p.join(downloadsDir.path, 'kphoto_backup_${DateTime.now().millisecondsSinceEpoch}.sqlite');
+        await dbFile.copy(exportPath);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Bestand opgeslagen in Downloads map:\n${p.basename(exportPath)}')));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lokaal opslaan mislukt: $e')));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _restoreBackup() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Index herstellen uit Cloud?'),
+        content: const Text('Dit herstelt je tijdlijn vanuit de Firebase Cloud backup.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ANNULEREN')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('HERSTELLEN')),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isLoading = true);
+      try {
+        final dbFolder = await getApplicationDocumentsDirectory();
+        final dbFile = File(p.join(dbFolder.path, 'db.sqlite'));
+        final tmpFile = File(p.join(dbFolder.path, 'db_restore.tmp'));
+        
+        final storageRef = FirebaseStorage.instance.ref().child('backups/${user.uid}/index_backup.sqlite');
+        
+        // Download eerst naar een tijdelijk bestand
+        await storageRef.writeToFile(tmpFile);
+        
+        if (await tmpFile.exists()) {
+          // Vervang het echte database bestand
+          await tmpFile.copy(dbFile.path);
+          await tmpFile.delete();
+          
+          if (mounted) {
+             showDialog(
+               context: context,
+               barrierDismissible: false,
+               builder: (context) => AlertDialog(
+                 title: const Text('Herstel voltooid'),
+                 content: const Text('De database is succesvol hersteld. De app wordt nu afgesloten om de wijzigingen te laden.'),
+                 actions: [
+                   ElevatedButton(
+                     onPressed: () => exit(0), 
+                     child: const Text('AFSLUITEN'),
+                   ),
+                 ],
+               ),
+             );
+          }
+        }
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Herstel mislukt: $e')));
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
+
   Future<Map<String, bool>> _checkAiModels() async {
     final docsDir = await getApplicationDocumentsDirectory();
     final modelPath = p.join(docsDir.path, 'image_embedder.tflite');
@@ -173,11 +315,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildStatusTile(String title, bool exists) {
+    if (_isAiDownloading) {
+      return ListTile(
+        leading: const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+        title: Text(title),
+        subtitle: Text('Downloaden AI module: ${(_aiDownloadProgress * 100).toInt()}%'),
+      );
+    }
+
     return ListTile(
       leading: Icon(exists ? Icons.check_circle : Icons.downloading, 
                    color: exists ? Colors.green : Colors.orange),
       title: Text(title),
-      subtitle: Text(exists ? 'Klaar voor gebruik (Lokaal)' : 'Wordt gedownload bij eerste gebruik'),
+      subtitle: Text(exists ? 'Klaar voor gebruik (Lokaal)' : 'Tik om model te installeren'),
+      trailing: exists 
+        ? IconButton(
+            icon: const Icon(Icons.play_circle_outline, color: Colors.purple),
+            onPressed: () {
+              context.read<GalleryBloc>().add(const StartAiScan(forceAll: true));
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('AI Analyse gestart op de achtergrond...')));
+              Navigator.pop(context);
+            },
+            tooltip: 'Start AI Analyse',
+          )
+        : IconButton(
+            icon: const Icon(Icons.file_download, color: Colors.blue),
+            onPressed: () async {
+              setState(() {
+                _isAiDownloading = true;
+                _aiDownloadProgress = 0.0;
+              });
+              try {
+                await ImageEmbeddingService().init(onProgress: (p) {
+                  setState(() => _aiDownloadProgress = p);
+                });
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Fout bij download: $e')));
+              } finally {
+                setState(() => _isAiDownloading = false);
+              }
+            },
+          ),
     );
   }
 
@@ -250,8 +428,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       separatorBuilder: (context, index) => const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final id = _folderIds[index];
+                        final count = _folderPhotoCounts[id] ?? 0;
                         return ListTile(
                           title: Text('Map ID: $id'),
+                          subtitle: Text('$count fotos gesynchroniseerd'),
                           trailing: IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () => setState(() => _folderIds.removeAt(index))),
                         );
                       },
@@ -279,6 +459,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     leading: const Icon(Icons.cleaning_services),
                     title: const Text('Cache legen'),
                     onTap: _clearCache,
+                  ),
+                  const Divider(),
+                  const Text('Index Cloud Backup (Metadata)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  const Text('Veilig en betrouwbaar opslaan in de Firebase Cloud.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _createBackup,
+                          icon: const Icon(Icons.cloud_upload),
+                          label: const Text('CLOUD BACKUP'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _restoreBackup,
+                          icon: const Icon(Icons.cloud_download),
+                          label: const Text('HERSTELLEN'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Lokaal exporteren', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  const Text('Sla de database op in de Downloads map van je telefoon.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _exportLocalBackup,
+                      icon: const Icon(Icons.file_download_outlined),
+                      label: const Text('OPSLAAN IN DOWNLOADS'),
+                    ),
                   ),
 
                   const SizedBox(height: 32),

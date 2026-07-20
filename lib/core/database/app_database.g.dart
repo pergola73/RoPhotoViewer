@@ -260,6 +260,28 @@ class $PhotosTable extends Photos with TableInfo<$PhotosTable, Photo> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _kdriveFolderNameMeta = const VerificationMeta(
+    'kdriveFolderName',
+  );
+  @override
+  late final GeneratedColumn<String> kdriveFolderName = GeneratedColumn<String>(
+    'kdrive_folder_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _kdriveFolderIdMeta = const VerificationMeta(
+    'kdriveFolderId',
+  );
+  @override
+  late final GeneratedColumn<String> kdriveFolderId = GeneratedColumn<String>(
+    'kdrive_folder_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -285,6 +307,8 @@ class $PhotosTable extends Photos with TableInfo<$PhotosTable, Photo> {
     lensModel,
     keywords,
     people,
+    kdriveFolderName,
+    kdriveFolderId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -454,6 +478,24 @@ class $PhotosTable extends Photos with TableInfo<$PhotosTable, Photo> {
         people.isAcceptableOrUnknown(data['people']!, _peopleMeta),
       );
     }
+    if (data.containsKey('kdrive_folder_name')) {
+      context.handle(
+        _kdriveFolderNameMeta,
+        kdriveFolderName.isAcceptableOrUnknown(
+          data['kdrive_folder_name']!,
+          _kdriveFolderNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('kdrive_folder_id')) {
+      context.handle(
+        _kdriveFolderIdMeta,
+        kdriveFolderId.isAcceptableOrUnknown(
+          data['kdrive_folder_id']!,
+          _kdriveFolderIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -557,6 +599,14 @@ class $PhotosTable extends Photos with TableInfo<$PhotosTable, Photo> {
         DriftSqlType.string,
         data['${effectivePrefix}people'],
       ),
+      kdriveFolderName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kdrive_folder_name'],
+      ),
+      kdriveFolderId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kdrive_folder_id'],
+      ),
     );
   }
 
@@ -593,6 +643,8 @@ class Photo extends DataClass implements Insertable<Photo> {
   final String? lensModel;
   final String? keywords;
   final String? people;
+  final String? kdriveFolderName;
+  final String? kdriveFolderId;
   const Photo({
     required this.id,
     required this.fileName,
@@ -617,6 +669,8 @@ class Photo extends DataClass implements Insertable<Photo> {
     this.lensModel,
     this.keywords,
     this.people,
+    this.kdriveFolderName,
+    this.kdriveFolderId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -680,6 +734,12 @@ class Photo extends DataClass implements Insertable<Photo> {
     if (!nullToAbsent || people != null) {
       map['people'] = Variable<String>(people);
     }
+    if (!nullToAbsent || kdriveFolderName != null) {
+      map['kdrive_folder_name'] = Variable<String>(kdriveFolderName);
+    }
+    if (!nullToAbsent || kdriveFolderId != null) {
+      map['kdrive_folder_id'] = Variable<String>(kdriveFolderId);
+    }
     return map;
   }
 
@@ -738,6 +798,12 @@ class Photo extends DataClass implements Insertable<Photo> {
       people: people == null && nullToAbsent
           ? const Value.absent()
           : Value(people),
+      kdriveFolderName: kdriveFolderName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(kdriveFolderName),
+      kdriveFolderId: kdriveFolderId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(kdriveFolderId),
     );
   }
 
@@ -774,6 +840,8 @@ class Photo extends DataClass implements Insertable<Photo> {
       lensModel: serializer.fromJson<String?>(json['lensModel']),
       keywords: serializer.fromJson<String?>(json['keywords']),
       people: serializer.fromJson<String?>(json['people']),
+      kdriveFolderName: serializer.fromJson<String?>(json['kdriveFolderName']),
+      kdriveFolderId: serializer.fromJson<String?>(json['kdriveFolderId']),
     );
   }
   @override
@@ -803,6 +871,8 @@ class Photo extends DataClass implements Insertable<Photo> {
       'lensModel': serializer.toJson<String?>(lensModel),
       'keywords': serializer.toJson<String?>(keywords),
       'people': serializer.toJson<String?>(people),
+      'kdriveFolderName': serializer.toJson<String?>(kdriveFolderName),
+      'kdriveFolderId': serializer.toJson<String?>(kdriveFolderId),
     };
   }
 
@@ -830,6 +900,8 @@ class Photo extends DataClass implements Insertable<Photo> {
     Value<String?> lensModel = const Value.absent(),
     Value<String?> keywords = const Value.absent(),
     Value<String?> people = const Value.absent(),
+    Value<String?> kdriveFolderName = const Value.absent(),
+    Value<String?> kdriveFolderId = const Value.absent(),
   }) => Photo(
     id: id ?? this.id,
     fileName: fileName ?? this.fileName,
@@ -860,6 +932,12 @@ class Photo extends DataClass implements Insertable<Photo> {
     lensModel: lensModel.present ? lensModel.value : this.lensModel,
     keywords: keywords.present ? keywords.value : this.keywords,
     people: people.present ? people.value : this.people,
+    kdriveFolderName: kdriveFolderName.present
+        ? kdriveFolderName.value
+        : this.kdriveFolderName,
+    kdriveFolderId: kdriveFolderId.present
+        ? kdriveFolderId.value
+        : this.kdriveFolderId,
   );
   Photo copyWithCompanion(PhotosCompanion data) {
     return Photo(
@@ -904,6 +982,12 @@ class Photo extends DataClass implements Insertable<Photo> {
       lensModel: data.lensModel.present ? data.lensModel.value : this.lensModel,
       keywords: data.keywords.present ? data.keywords.value : this.keywords,
       people: data.people.present ? data.people.value : this.people,
+      kdriveFolderName: data.kdriveFolderName.present
+          ? data.kdriveFolderName.value
+          : this.kdriveFolderName,
+      kdriveFolderId: data.kdriveFolderId.present
+          ? data.kdriveFolderId.value
+          : this.kdriveFolderId,
     );
   }
 
@@ -932,7 +1016,9 @@ class Photo extends DataClass implements Insertable<Photo> {
           ..write('flash: $flash, ')
           ..write('lensModel: $lensModel, ')
           ..write('keywords: $keywords, ')
-          ..write('people: $people')
+          ..write('people: $people, ')
+          ..write('kdriveFolderName: $kdriveFolderName, ')
+          ..write('kdriveFolderId: $kdriveFolderId')
           ..write(')'))
         .toString();
   }
@@ -962,6 +1048,8 @@ class Photo extends DataClass implements Insertable<Photo> {
     lensModel,
     keywords,
     people,
+    kdriveFolderName,
+    kdriveFolderId,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -989,7 +1077,9 @@ class Photo extends DataClass implements Insertable<Photo> {
           other.flash == this.flash &&
           other.lensModel == this.lensModel &&
           other.keywords == this.keywords &&
-          other.people == this.people);
+          other.people == this.people &&
+          other.kdriveFolderName == this.kdriveFolderName &&
+          other.kdriveFolderId == this.kdriveFolderId);
 }
 
 class PhotosCompanion extends UpdateCompanion<Photo> {
@@ -1016,6 +1106,8 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
   final Value<String?> lensModel;
   final Value<String?> keywords;
   final Value<String?> people;
+  final Value<String?> kdriveFolderName;
+  final Value<String?> kdriveFolderId;
   const PhotosCompanion({
     this.id = const Value.absent(),
     this.fileName = const Value.absent(),
@@ -1040,6 +1132,8 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
     this.lensModel = const Value.absent(),
     this.keywords = const Value.absent(),
     this.people = const Value.absent(),
+    this.kdriveFolderName = const Value.absent(),
+    this.kdriveFolderId = const Value.absent(),
   });
   PhotosCompanion.insert({
     this.id = const Value.absent(),
@@ -1065,6 +1159,8 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
     this.lensModel = const Value.absent(),
     this.keywords = const Value.absent(),
     this.people = const Value.absent(),
+    this.kdriveFolderName = const Value.absent(),
+    this.kdriveFolderId = const Value.absent(),
   }) : fileName = Value(fileName),
        kdrivePath = Value(kdrivePath),
        dateTaken = Value(dateTaken),
@@ -1093,6 +1189,8 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
     Expression<String>? lensModel,
     Expression<String>? keywords,
     Expression<String>? people,
+    Expression<String>? kdriveFolderName,
+    Expression<String>? kdriveFolderId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1120,6 +1218,8 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
       if (lensModel != null) 'lens_model': lensModel,
       if (keywords != null) 'keywords': keywords,
       if (people != null) 'people': people,
+      if (kdriveFolderName != null) 'kdrive_folder_name': kdriveFolderName,
+      if (kdriveFolderId != null) 'kdrive_folder_id': kdriveFolderId,
     });
   }
 
@@ -1147,6 +1247,8 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
     Value<String?>? lensModel,
     Value<String?>? keywords,
     Value<String?>? people,
+    Value<String?>? kdriveFolderName,
+    Value<String?>? kdriveFolderId,
   }) {
     return PhotosCompanion(
       id: id ?? this.id,
@@ -1172,6 +1274,8 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
       lensModel: lensModel ?? this.lensModel,
       keywords: keywords ?? this.keywords,
       people: people ?? this.people,
+      kdriveFolderName: kdriveFolderName ?? this.kdriveFolderName,
+      kdriveFolderId: kdriveFolderId ?? this.kdriveFolderId,
     );
   }
 
@@ -1249,6 +1353,12 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
     if (people.present) {
       map['people'] = Variable<String>(people.value);
     }
+    if (kdriveFolderName.present) {
+      map['kdrive_folder_name'] = Variable<String>(kdriveFolderName.value);
+    }
+    if (kdriveFolderId.present) {
+      map['kdrive_folder_id'] = Variable<String>(kdriveFolderId.value);
+    }
     return map;
   }
 
@@ -1277,7 +1387,9 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
           ..write('flash: $flash, ')
           ..write('lensModel: $lensModel, ')
           ..write('keywords: $keywords, ')
-          ..write('people: $people')
+          ..write('people: $people, ')
+          ..write('kdriveFolderName: $kdriveFolderName, ')
+          ..write('kdriveFolderId: $kdriveFolderId')
           ..write(')'))
         .toString();
   }
@@ -2624,6 +2736,224 @@ class DetectedFacesCompanion extends UpdateCompanion<DetectedFace> {
   }
 }
 
+class $FolderSyncTable extends FolderSync
+    with TableInfo<$FolderSyncTable, FolderSyncData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FolderSyncTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _folderIdMeta = const VerificationMeta(
+    'folderId',
+  );
+  @override
+  late final GeneratedColumn<String> folderId = GeneratedColumn<String>(
+    'folder_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastSyncMeta = const VerificationMeta(
+    'lastSync',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastSync = GeneratedColumn<DateTime>(
+    'last_sync',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [folderId, lastSync];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'folder_sync';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FolderSyncData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('folder_id')) {
+      context.handle(
+        _folderIdMeta,
+        folderId.isAcceptableOrUnknown(data['folder_id']!, _folderIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_folderIdMeta);
+    }
+    if (data.containsKey('last_sync')) {
+      context.handle(
+        _lastSyncMeta,
+        lastSync.isAcceptableOrUnknown(data['last_sync']!, _lastSyncMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lastSyncMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {folderId};
+  @override
+  FolderSyncData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FolderSyncData(
+      folderId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}folder_id'],
+      )!,
+      lastSync: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_sync'],
+      )!,
+    );
+  }
+
+  @override
+  $FolderSyncTable createAlias(String alias) {
+    return $FolderSyncTable(attachedDatabase, alias);
+  }
+}
+
+class FolderSyncData extends DataClass implements Insertable<FolderSyncData> {
+  final String folderId;
+  final DateTime lastSync;
+  const FolderSyncData({required this.folderId, required this.lastSync});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['folder_id'] = Variable<String>(folderId);
+    map['last_sync'] = Variable<DateTime>(lastSync);
+    return map;
+  }
+
+  FolderSyncCompanion toCompanion(bool nullToAbsent) {
+    return FolderSyncCompanion(
+      folderId: Value(folderId),
+      lastSync: Value(lastSync),
+    );
+  }
+
+  factory FolderSyncData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FolderSyncData(
+      folderId: serializer.fromJson<String>(json['folderId']),
+      lastSync: serializer.fromJson<DateTime>(json['lastSync']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'folderId': serializer.toJson<String>(folderId),
+      'lastSync': serializer.toJson<DateTime>(lastSync),
+    };
+  }
+
+  FolderSyncData copyWith({String? folderId, DateTime? lastSync}) =>
+      FolderSyncData(
+        folderId: folderId ?? this.folderId,
+        lastSync: lastSync ?? this.lastSync,
+      );
+  FolderSyncData copyWithCompanion(FolderSyncCompanion data) {
+    return FolderSyncData(
+      folderId: data.folderId.present ? data.folderId.value : this.folderId,
+      lastSync: data.lastSync.present ? data.lastSync.value : this.lastSync,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FolderSyncData(')
+          ..write('folderId: $folderId, ')
+          ..write('lastSync: $lastSync')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(folderId, lastSync);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FolderSyncData &&
+          other.folderId == this.folderId &&
+          other.lastSync == this.lastSync);
+}
+
+class FolderSyncCompanion extends UpdateCompanion<FolderSyncData> {
+  final Value<String> folderId;
+  final Value<DateTime> lastSync;
+  final Value<int> rowid;
+  const FolderSyncCompanion({
+    this.folderId = const Value.absent(),
+    this.lastSync = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FolderSyncCompanion.insert({
+    required String folderId,
+    required DateTime lastSync,
+    this.rowid = const Value.absent(),
+  }) : folderId = Value(folderId),
+       lastSync = Value(lastSync);
+  static Insertable<FolderSyncData> custom({
+    Expression<String>? folderId,
+    Expression<DateTime>? lastSync,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (folderId != null) 'folder_id': folderId,
+      if (lastSync != null) 'last_sync': lastSync,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FolderSyncCompanion copyWith({
+    Value<String>? folderId,
+    Value<DateTime>? lastSync,
+    Value<int>? rowid,
+  }) {
+    return FolderSyncCompanion(
+      folderId: folderId ?? this.folderId,
+      lastSync: lastSync ?? this.lastSync,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (folderId.present) {
+      map['folder_id'] = Variable<String>(folderId.value);
+    }
+    if (lastSync.present) {
+      map['last_sync'] = Variable<DateTime>(lastSync.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FolderSyncCompanion(')
+          ..write('folderId: $folderId, ')
+          ..write('lastSync: $lastSync, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2632,6 +2962,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AlbumPhotosTable albumPhotos = $AlbumPhotosTable(this);
   late final $PersonsTable persons = $PersonsTable(this);
   late final $DetectedFacesTable detectedFaces = $DetectedFacesTable(this);
+  late final $FolderSyncTable folderSync = $FolderSyncTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2642,6 +2973,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     albumPhotos,
     persons,
     detectedFaces,
+    folderSync,
   ];
 }
 
@@ -2670,6 +3002,8 @@ typedef $$PhotosTableCreateCompanionBuilder =
       Value<String?> lensModel,
       Value<String?> keywords,
       Value<String?> people,
+      Value<String?> kdriveFolderName,
+      Value<String?> kdriveFolderId,
     });
 typedef $$PhotosTableUpdateCompanionBuilder =
     PhotosCompanion Function({
@@ -2696,6 +3030,8 @@ typedef $$PhotosTableUpdateCompanionBuilder =
       Value<String?> lensModel,
       Value<String?> keywords,
       Value<String?> people,
+      Value<String?> kdriveFolderName,
+      Value<String?> kdriveFolderId,
     });
 
 final class $$PhotosTableReferences
@@ -2880,6 +3216,16 @@ class $$PhotosTableFilterComposer
 
   ColumnFilters<String> get people => $composableBuilder(
     column: $table.people,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kdriveFolderName => $composableBuilder(
+    column: $table.kdriveFolderName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kdriveFolderId => $composableBuilder(
+    column: $table.kdriveFolderId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3082,6 +3428,16 @@ class $$PhotosTableOrderingComposer
     column: $table.people,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get kdriveFolderName => $composableBuilder(
+    column: $table.kdriveFolderName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kdriveFolderId => $composableBuilder(
+    column: $table.kdriveFolderId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PhotosTableAnnotationComposer
@@ -3179,6 +3535,16 @@ class $$PhotosTableAnnotationComposer
 
   GeneratedColumn<String> get people =>
       $composableBuilder(column: $table.people, builder: (column) => column);
+
+  GeneratedColumn<String> get kdriveFolderName => $composableBuilder(
+    column: $table.kdriveFolderName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get kdriveFolderId => $composableBuilder(
+    column: $table.kdriveFolderId,
+    builder: (column) => column,
+  );
 
   Expression<T> albumsRefs<T extends Object>(
     Expression<T> Function($$AlbumsTableAnnotationComposer a) f,
@@ -3311,6 +3677,8 @@ class $$PhotosTableTableManager
                 Value<String?> lensModel = const Value.absent(),
                 Value<String?> keywords = const Value.absent(),
                 Value<String?> people = const Value.absent(),
+                Value<String?> kdriveFolderName = const Value.absent(),
+                Value<String?> kdriveFolderId = const Value.absent(),
               }) => PhotosCompanion(
                 id: id,
                 fileName: fileName,
@@ -3335,6 +3703,8 @@ class $$PhotosTableTableManager
                 lensModel: lensModel,
                 keywords: keywords,
                 people: people,
+                kdriveFolderName: kdriveFolderName,
+                kdriveFolderId: kdriveFolderId,
               ),
           createCompanionCallback:
               ({
@@ -3361,6 +3731,8 @@ class $$PhotosTableTableManager
                 Value<String?> lensModel = const Value.absent(),
                 Value<String?> keywords = const Value.absent(),
                 Value<String?> people = const Value.absent(),
+                Value<String?> kdriveFolderName = const Value.absent(),
+                Value<String?> kdriveFolderId = const Value.absent(),
               }) => PhotosCompanion.insert(
                 id: id,
                 fileName: fileName,
@@ -3385,6 +3757,8 @@ class $$PhotosTableTableManager
                 lensModel: lensModel,
                 keywords: keywords,
                 people: people,
+                kdriveFolderName: kdriveFolderName,
+                kdriveFolderId: kdriveFolderId,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -4957,6 +5331,149 @@ typedef $$DetectedFacesTableProcessedTableManager =
       DetectedFace,
       PrefetchHooks Function({bool photoId, bool personId})
     >;
+typedef $$FolderSyncTableCreateCompanionBuilder =
+    FolderSyncCompanion Function({
+      required String folderId,
+      required DateTime lastSync,
+      Value<int> rowid,
+    });
+typedef $$FolderSyncTableUpdateCompanionBuilder =
+    FolderSyncCompanion Function({
+      Value<String> folderId,
+      Value<DateTime> lastSync,
+      Value<int> rowid,
+    });
+
+class $$FolderSyncTableFilterComposer
+    extends Composer<_$AppDatabase, $FolderSyncTable> {
+  $$FolderSyncTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get folderId => $composableBuilder(
+    column: $table.folderId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastSync => $composableBuilder(
+    column: $table.lastSync,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FolderSyncTableOrderingComposer
+    extends Composer<_$AppDatabase, $FolderSyncTable> {
+  $$FolderSyncTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get folderId => $composableBuilder(
+    column: $table.folderId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastSync => $composableBuilder(
+    column: $table.lastSync,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FolderSyncTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FolderSyncTable> {
+  $$FolderSyncTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get folderId =>
+      $composableBuilder(column: $table.folderId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSync =>
+      $composableBuilder(column: $table.lastSync, builder: (column) => column);
+}
+
+class $$FolderSyncTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FolderSyncTable,
+          FolderSyncData,
+          $$FolderSyncTableFilterComposer,
+          $$FolderSyncTableOrderingComposer,
+          $$FolderSyncTableAnnotationComposer,
+          $$FolderSyncTableCreateCompanionBuilder,
+          $$FolderSyncTableUpdateCompanionBuilder,
+          (
+            FolderSyncData,
+            BaseReferences<_$AppDatabase, $FolderSyncTable, FolderSyncData>,
+          ),
+          FolderSyncData,
+          PrefetchHooks Function()
+        > {
+  $$FolderSyncTableTableManager(_$AppDatabase db, $FolderSyncTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FolderSyncTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FolderSyncTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FolderSyncTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> folderId = const Value.absent(),
+                Value<DateTime> lastSync = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FolderSyncCompanion(
+                folderId: folderId,
+                lastSync: lastSync,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String folderId,
+                required DateTime lastSync,
+                Value<int> rowid = const Value.absent(),
+              }) => FolderSyncCompanion.insert(
+                folderId: folderId,
+                lastSync: lastSync,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FolderSyncTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FolderSyncTable,
+      FolderSyncData,
+      $$FolderSyncTableFilterComposer,
+      $$FolderSyncTableOrderingComposer,
+      $$FolderSyncTableAnnotationComposer,
+      $$FolderSyncTableCreateCompanionBuilder,
+      $$FolderSyncTableUpdateCompanionBuilder,
+      (
+        FolderSyncData,
+        BaseReferences<_$AppDatabase, $FolderSyncTable, FolderSyncData>,
+      ),
+      FolderSyncData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4971,4 +5488,6 @@ class $AppDatabaseManager {
       $$PersonsTableTableManager(_db, _db.persons);
   $$DetectedFacesTableTableManager get detectedFaces =>
       $$DetectedFacesTableTableManager(_db, _db.detectedFaces);
+  $$FolderSyncTableTableManager get folderSync =>
+      $$FolderSyncTableTableManager(_db, _db.folderSync);
 }

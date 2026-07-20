@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kphoto/core/database/app_database.dart';
@@ -13,6 +14,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:kphoto/core/database/objectbox_manager.dart';
 import 'package:kphoto/core/services/media_processor_service.dart';
 import 'package:kphoto/core/services/vector_search_service.dart';
+import 'package:kphoto/core/services/image_embedding_service.dart';
 
 import 'package:kphoto/presentation/screens/firebase_login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -66,6 +68,10 @@ void main() async {
   final vectorSearch = VectorSearchService(objectBox);
   
   final syncEngine = SyncEngine(apiService, database, mediaProcessor: mediaProcessor);
+  
+  // Trigger AI Model download/init in de achtergrond
+  unawaited(ImageEmbeddingService().init());
+
   final aiTaggingService = AITaggingService(database, apiService);
   
   final loggedIn = await authRepository.isLoggedIn();

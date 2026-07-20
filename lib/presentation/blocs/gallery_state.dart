@@ -2,7 +2,6 @@ part of 'gallery_bloc.dart';
 
 enum GalleryStatus { initial, loading, success, failure, syncing, syncFinished, initialSync }
 enum GalleryViewMode { month, day, large }
-enum SyncPhase { idle, scanning, downloading, indexing }
 
 class GalleryState extends Equatable {
   final GalleryStatus status;
@@ -21,6 +20,8 @@ class GalleryState extends Equatable {
   final int indexingCurrent;
   final int indexingTotal;
   final bool isFirstSyncComplete;
+  final bool isSyncing; 
+  final bool isManualSync;
 
   final List<dynamic> trashItems;
   final Set<String> selectedTrashIds;
@@ -45,6 +46,8 @@ class GalleryState extends Equatable {
     this.indexingCurrent = 0,
     this.indexingTotal = 0,
     this.isFirstSyncComplete = false,
+    this.isSyncing = false,
+    this.isManualSync = false,
     this.trashItems = const [],
     this.selectedTrashIds = const {},
     this.hasReachedMax = false,
@@ -69,6 +72,8 @@ class GalleryState extends Equatable {
     int? indexingCurrent,
     int? indexingTotal,
     bool? isFirstSyncComplete,
+    bool? isSyncing,
+    bool? isManualSync,
     List<dynamic>? trashItems,
     Set<String>? selectedTrashIds,
     bool? hasReachedMax,
@@ -92,6 +97,8 @@ class GalleryState extends Equatable {
       indexingCurrent: indexingCurrent ?? this.indexingCurrent,
       indexingTotal: indexingTotal ?? this.indexingTotal,
       isFirstSyncComplete: isFirstSyncComplete ?? this.isFirstSyncComplete,
+      isSyncing: isSyncing ?? this.isSyncing,
+      isManualSync: isManualSync ?? this.isManualSync,
       trashItems: trashItems ?? this.trashItems,
       selectedTrashIds: selectedTrashIds ?? this.selectedTrashIds,
       hasReachedMax: hasReachedMax ?? this.hasReachedMax,
@@ -118,6 +125,8 @@ class GalleryState extends Equatable {
     indexingCurrent,
     indexingTotal,
     isFirstSyncComplete,
+    isSyncing,
+    isManualSync,
     trashItems,
     selectedTrashIds,
     hasReachedMax,

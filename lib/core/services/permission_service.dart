@@ -48,11 +48,13 @@ class PermissionService {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              // Probeer eerst de standaard weg, dan de intent
-              if (await Permission.ignoreBatteryOptimizations.request().isGranted) {
-                return;
+              // Probeer direct de systeem-dialoog te triggeren
+              try {
+                await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+              } catch (e) {
+                // Als dat faalt, open de app settings zodat de gebruiker het handmatig kan doen
+                await openAppSettings();
               }
-              await FlutterForegroundTask.requestIgnoreBatteryOptimization();
             },
             child: const Text('NU INSTELLEN'),
           ),

@@ -21,7 +21,7 @@ class AssetEntity {
   String? textOCR;
 
   @Property(type: PropertyType.floatVector)
-  @HnswIndex(dimensions: 1024) // Google MobileNet-v3 Large gebruikt 1024 dimensies
+  @HnswIndex(dimensions: 1280) // Aangepast naar 1280 voor MobileNet-v3 Large
   Float32List? embedding;
 
   AssetEntity({

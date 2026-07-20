@@ -122,10 +122,59 @@ class KDriveApiService {
   Future<void> emptyTrash() async => await _dio.delete('/2/drive/$_driveId/trash');
   Future<void> deleteFilePermanent(String fileId) async => await _dio.delete('/2/drive/$_driveId/files/$fileId', queryParameters: {'force': true});
 
+  Future<void> uploadDatabaseBackup(File dbFile) async {
+    if (_driveId == null || _driveId!.isEmpty) {
+      throw Exception('Drive ID is niet geconfigureerd.');
+    }
+
+    try {
+      // 1. Zoek en verwijder oude backup
+      final searchRes = await _dio.get('/2/drive/$_driveId/files/search', queryParameters: {'q': 'kphoto_index_backup.sqlite'});
+      if (searchRes.data != null && searchRes.data['data'] != null) {
+        for (var item in (searchRes.data['data'] as List)) {
+          if (item['name'] == 'kphoto_index_backup.sqlite') {
+            await deleteFilePermanent(item['id'].toString());
+          }
+        }
+      }
+
+      // 2. Universele upload methode: POST naar /files met Multipart
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(dbFile.path, filename: 'kphoto_index_backup.sqlite'),
+        'directory_id': '0', // Root map
+      });
+
+      await _dio.post('/2/drive/$_driveId/files', data: formData);
+      debugPrint('kDrive API: Backup succesvol voltooid.');
+    } catch (e) {
+      debugPrint('kDrive API: Backup mislukt (Post-files) - $e');
+      rethrow;
+    }
+  }
+
+  Future<String?> findDatabaseBackup() async {
+    try {
+      final response = await _dio.get('/2/drive/$_driveId/files/search', queryParameters: {'q': 'kphoto_index_backup.sqlite'});
+      if (response.data['data'] != null && (response.data['data'] as List).isNotEmpty) {
+        return response.data['data'][0]['id'].toString();
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<List<int>?> downloadHeader(String fileId, {int bytes = 8192}) async {
     try {
       final response = await _dio.get('/2/drive/$_driveId/files/$fileId/download', options: Options(headers: {'Range': 'bytes=0-${bytes - 1}'}, responseType: ResponseType.bytes, followRedirects: true));
       return (response.data is List<int>) ? (response.data as List<int>) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getFileInfo(String fileId) async {
+    try {
+      final response = await _dio.get('/2/drive/$_driveId/files/$fileId');
+      return response.data['data'] as Map<String, dynamic>?;
     } catch (_) {
       return null;
     }

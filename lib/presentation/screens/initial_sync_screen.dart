@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:kphoto/core/models/sync_phase.dart';
 import 'package:kphoto/presentation/blocs/gallery_bloc.dart';
 import 'package:kphoto/presentation/screens/gallery_screen.dart';
 

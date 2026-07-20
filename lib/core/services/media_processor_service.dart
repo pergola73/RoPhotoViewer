@@ -10,6 +10,8 @@ import 'package:objectbox/objectbox.dart';
 
 import 'package:kphoto/objectbox.g.dart';
 
+import 'package:flutter/services.dart';
+
 class MediaProcessorService {
   final ObjectBoxManager _dbManager;
   bool _isProcessing = false;
@@ -23,39 +25,41 @@ class MediaProcessorService {
     try {
       final box = _dbManager.store.box<AssetEntity>();
       
-      // 1. Filter: alleen bestanden die nog NIET in ObjectBox staan
-      // We halen alle bestaande paden op (indexed) voor een snelle check
       final query = box.query().build();
       final existingPaths = query.property(AssetEntity_.path).find().toSet();
       query.close();
 
-      final pendingPaths = filePaths.where((p) => !existingPaths.contains(p)).toList();
+      // We filteren vliegensvlug de lijst van 35.000 fotos
+      final pendingPaths = filePaths.where((p) {
+        return p.isNotEmpty && !existingPaths.contains(p);
+      }).toList();
       
       if (pendingPaths.isEmpty) {
+        debugPrint('MediaProcessor: Alles is al geïndexeerd in ObjectBox.');
         _isProcessing = false;
         return;
       }
 
-      debugPrint('MediaProcessor: ${pendingPaths.length} nieuwe bestanden te indexeren (totaal was ${filePaths.length})');
+      debugPrint('MediaProcessor: ${pendingPaths.length} nieuwe bestanden te indexeren');
 
-      // Process in batches of 50 to manage memory
-      const int batchSize = 50;
+      // CRUCIAAL: Haal de token van de hoofd-thread op
+      final RootIsolateToken rootToken = RootIsolateToken.instance!;
+
+      const int batchSize = 25; // Iets kleiner voor stabiliteit op grote aantallen
       int processed = 0;
       
       for (int i = 0; i < pendingPaths.length; i += batchSize) {
         final batch = pendingPaths.skip(i).take(batchSize).toList();
         
-        // Perform heavy processing in Isolate
-        final List<AssetEntity> processedAssets = await compute(_processBatch, batch);
+        // Geef de token mee aan de worker
+        final List<AssetEntity> processedAssets = await compute(_processBatch, {
+          'paths': batch,
+          'token': rootToken,
+        });
         
-        // Save batch to database in a single transaction
-        box.putMany(processedAssets);
-
-        // MARKERING: Update de Drift database dat deze bestanden nu 'verwerkt' zijn
-        // Dit doen we door een lege string in keywords te zetten als markering
-        final processedPaths = batch;
-        // In een echte app zouden we hier een batch update doen naar Drift
-        // Voor nu zorgt de keywords.isNull check in SyncEngine al voor de filtering
+        if (processedAssets.isNotEmpty) {
+          box.putMany(processedAssets);
+        }
         
         processed += batch.length;
         onProgress?.call(processed, pendingPaths.length);
@@ -67,36 +71,38 @@ class MediaProcessorService {
     }
   }
 
-  // This runs in a separate Isolate
-  static Future<List<AssetEntity>> _processBatch(List<String> paths) async {
+  // Deze worker draait in zijn eigen isolate
+  static Future<List<AssetEntity>> _processBatch(Map<String, dynamic> args) async {
+    final List<String> paths = args['paths'];
+    final RootIsolateToken token = args['token'];
+    
+    // VERBINDING MAKEN: Autoriseer dit achtergrond-kamertje
+    BackgroundIsolateBinaryMessenger.ensureInitialized(token);
+    
     List<AssetEntity> results = [];
     final ai = ImageEmbeddingService();
-    await ai.init(); // Auto-download model indien nodig
+    await ai.init(); // Model laden binnen de isolate
 
     for (var path in paths) {
       try {
         final file = File(path);
         if (!file.existsSync()) continue;
         
-        final bytes = await file.readAsBytes();
-
-        // 1. EXIF Metadata
-        final exifData = await readExifFromBytes(bytes);
-        final creationDate = _extractDate(exifData) ?? file.lastModifiedSync();
-
-        // 2. Google AI Inference (Image Embedding)
+        // Google AI Analyse
         final embedding = await ai.generateEmbedding(path);
 
-        results.add(AssetEntity(
-          path: path,
-          creationDate: creationDate,
-          cameraModel: exifData['Image Model']?.toString(),
-          latitude: _parseGps(exifData['GPS GPSLatitude']),
-          longitude: _parseGps(exifData['GPS GPSLongitude']),
-          embedding: embedding,
-        ));
+        if (embedding.isNotEmpty) {
+          results.add(AssetEntity(
+            path: path,
+            creationDate: file.lastModifiedSync(),
+            embedding: embedding,
+          ));
+        }
+        
+        // Geef het systeem even ademruimte tussen zware AI taken
+        await Future.delayed(const Duration(milliseconds: 10));
       } catch (e) {
-        print('MediaProcessor: Error processing $path - $e');
+        print('MediaProcessor Isolate Error: $e');
       }
     }
     return results;

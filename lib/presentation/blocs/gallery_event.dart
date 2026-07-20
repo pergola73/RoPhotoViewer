@@ -21,10 +21,11 @@ class PhotosUpdated extends GalleryEvent {
 
 class SyncProgressUpdated extends GalleryEvent {
   final int count;
-  const SyncProgressUpdated(this.count);
+  final SyncPhase? phase;
+  const SyncProgressUpdated(this.count, {this.phase});
 
   @override
-  List<Object?> get props => [count];
+  List<Object?> get props => [count, phase];
 }
 
 class SearchGallery extends GalleryEvent {
@@ -106,7 +107,25 @@ class EmptyTrash extends GalleryEvent {}
 
 class ToggleFavoriteFilter extends GalleryEvent {}
 
-class SyncWithKDrive extends GalleryEvent {}
+class ToggleSelectedPhotosFavorite extends GalleryEvent {}
+
+class SyncWithKDrive extends GalleryEvent {
+  final bool isManual;
+  const SyncWithKDrive({this.isManual = false});
+
+  @override
+  List<Object?> get props => [isManual];
+}
+
+class UpdatePhotoMetadata extends GalleryEvent {
+  final int photoId;
+  final DateTime? date;
+  final String? keywords;
+  const UpdatePhotoMetadata(this.photoId, {this.date, this.keywords});
+
+  @override
+  List<Object?> get props => [photoId, date, keywords];
+}
 
 class StartAiScan extends GalleryEvent {
   final bool forceAll;
