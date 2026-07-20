@@ -7,7 +7,6 @@ import 'package:path/path.dart' as p;
 import 'package:kphoto/core/database/app_database.dart';
 import 'package:kphoto/core/network/kdrive_api_service.dart';
 import 'package:exif/exif.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:kphoto/main.dart';
 import 'package:kphoto/core/services/media_processor_service.dart';
@@ -44,7 +43,7 @@ class SyncEngine {
   void setThrottle(bool throttle) {
     if (_isThrottled == throttle) return;
     _isThrottled = throttle;
-    debugPrint('Sync: Turbo modus: ${_isThrottled ? "VIP (2 streams)" : "MAX (40 streams)"}');
+    debugPrint('Sync: Turbo modus: ${_isThrottled ? "VIP (2 streams)" : "MAX (15 streams)"}');
   }
 
   KDriveApiService get apiService => _apiService;
@@ -70,9 +69,6 @@ class SyncEngine {
     _isSyncing = true;
     _startForegroundService();
 
-    final List<Map<String, dynamic>> pendingInitialSync = [];
-    final List<Future> metadataTasks = [];
-
     try {
       final Set<String> existingIds = await _db.getAllKdrivePaths();
       final localDir = await getApplicationDocumentsDirectory();
@@ -83,16 +79,19 @@ class SyncEngine {
       final Set<String> visitedFolders = Set.from(rootFolderIds);
       int totalScannedCount = 0;
 
+      // Start de thumbnail downloader alvast in de achtergrond
+      _startBackgroundThumbnailDownloader(onProgress, onIndexingProgress);
+
       while (folderQueue.isNotEmpty) {
         final currentFolderId = folderQueue.removeAt(0);
         
-        // 1. Check of de map gewijzigd is sinds de laatste sync
         final lastSyncDate = await _db.getLastSyncForFolder(currentFolderId);
         final folderInfo = await _apiService.getFileInfo(currentFolderId);
         
         if (folderInfo != null && lastSyncDate != null) {
           final serverModified = DateTime.tryParse(folderInfo['last_modified']?.toString() ?? '');
-          if (serverModified != null && serverModified.isBefore(lastSyncDate)) {
+          // Als de map korter dan 5 min geleden is aangepast, scannen we hem sowieso (marge voor tijdverschil)
+          if (serverModified != null && serverModified.isBefore(lastSyncDate.subtract(const Duration(minutes: 5)))) {
             debugPrint('Sync: Map ${folderInfo['name']} is ongewijzigd, overslaan.');
             continue;
           }
@@ -105,6 +104,8 @@ class SyncEngine {
           await for (final batch in _apiService.getChildrenStream(currentFolderId)) {
             final processedResults = await compute(_processBatchInIsolate, batch);
             
+            final List<Map<String, dynamic>> newItemsInBatch = [];
+
             for (final result in processedResults) {
               final fileId = result['id'];
               if (result['isFolder']) {
@@ -119,31 +120,23 @@ class SyncEngine {
               onProgress?.call(totalScannedCount, SyncPhase.scanning);
 
               if (existingIds.contains(fileId)) {
-                // Update folder info voor bestaande fotos als die ontbreekt
-                await (_db.update(_db.photos)..where((t) => t.kdrivePath.equals(fileId) & t.kdriveFolderId.isNull())).write(
-                  PhotosCompanion(
-                    kdriveFolderName: Value(folderName),
-                    kdriveFolderId: Value(currentFolderId),
-                  )
-                );
                 continue;
               }
               
               result['kdriveFolderName'] = folderName;
               result['kdriveFolderId'] = currentFolderId;
               
-              pendingInitialSync.add(result);
+              newItemsInBatch.add(result);
               existingIds.add(fileId);
             }
 
-            if (pendingInitialSync.length >= 50) {
-              final batchToProcess = List<Map<String, dynamic>>.from(pendingInitialSync);
-              pendingInitialSync.clear();
-              metadataTasks.add(_processInitialMetadataBatch(batchToProcess, onProgress));
+            if (newItemsInBatch.isNotEmpty) {
+              await _processNewItemsBatch(newItemsInBatch, onProgress);
+              // Trigger downloader na elke batch nieuwe items
+              _startBackgroundThumbnailDownloader(onProgress, onIndexingProgress);
             }
           }
 
-          // 2. Markeer deze map als succesvol gescand
           await _db.updateLastSyncForFolder(currentFolderId);
 
         } catch (e) {
@@ -151,18 +144,9 @@ class SyncEngine {
         }
       }
 
-      if (pendingInitialSync.isNotEmpty) {
-        metadataTasks.add(_processInitialMetadataBatch(pendingInitialSync, onProgress));
-      }
-
-      // WACHTEN op alle metadata taken (EXIF 8KB scans)
-      if (metadataTasks.isNotEmpty) {
-        debugPrint('Sync: Wachten op ${metadataTasks.length} metadata taken...');
-        await Future.wait(metadataTasks);
-      }
-
       debugPrint('Sync: Namen-scan voltooid. Totaal gescand: $totalScannedCount');
       
+      // Finale pass om alles af te ronden
       await _downloadMissingThumbnails(onProgress, onIndexingProgress);
 
     } catch (e) {
@@ -174,69 +158,56 @@ class SyncEngine {
     }
   }
 
-  Future<void> _processInitialMetadataBatch(List<Map<String, dynamic>> batch, Function(int, SyncPhase)? onProgress) async {
-    final int concurrency = _isThrottled ? 5 : 50; 
+  void _startBackgroundThumbnailDownloader(Function(int, SyncPhase)? onProgress, [Function(int, int)? onIndexingProgress]) {
+    if (_isDownloadingThumbnails) return;
+    unawaited(_downloadMissingThumbnails(onProgress, onIndexingProgress));
+  }
+
+  Future<void> _processNewItemsBatch(List<Map<String, dynamic>> batch, Function(int, SyncPhase)? onProgress) async {
+    final int concurrency = _isThrottled ? 2 : 10; 
     
     for (int i = 0; i < batch.length; i += concurrency) {
       final chunk = batch.skip(i).take(concurrency).toList();
+      
       await Future.wait(chunk.map((item) async {
         try {
-          final header = await _apiService.downloadHeader(item['id']);
+          DateTime finalDate = DateTime.parse(item['dateTaken']);
           PhotoMetadata? metadata;
-          if (header != null) {
-            metadata = await compute(SyncEngine.extractExifFromBytesStatic, header);
+
+          // Alleen header downloaden als kDrive geen EXIF data meegaf in de list response
+          if (item['hasExif'] != true) {
+             final header = await _apiService.downloadHeader(item['id']).timeout(const Duration(seconds: 5), onTimeout: () => null);
+             if (header != null) {
+               metadata = await compute(SyncEngine.extractExifFromBytesStatic, header);
+               if (metadata?.date != null) finalDate = metadata!.date!;
+             }
           }
 
-          final finalDate = metadata?.date ?? DateTime.parse(item['dateTaken']);
-          
           final companion = PhotosCompanion.insert(
             fileName: item['name'],
             kdrivePath: item['id'],
             dateTaken: finalDate,
             aiTags: const [],
             cameraModel: Value(metadata?.camera),
-            latitude: Value(metadata?.lat),
-            longitude: Value(metadata?.lon),
+            latitude: Value(metadata?.lat ?? item['lat']),
+            longitude: Value(metadata?.lon ?? item['lon']),
             mediaType: Value(item['mediaType']),
-            keywords: const Value(null), // EXPLICIET NULL zodat het niet getoond wordt
+            locationName: Value(item['locationName']),
             kdriveFolderName: Value(item['kdriveFolderName']),
             kdriveFolderId: Value(item['kdriveFolderId']),
           );
 
-          final id = await _db.into(_db.photos).insert(companion, mode: InsertMode.insertOrIgnore);
+          await _db.into(_db.photos).insert(companion, mode: InsertMode.insertOrIgnore);
           
-          if (id > 0) {
-            unawaited(_downloadSingleThumbnail(id, item['id']));
-          }
         } catch (e) {
-          debugPrint('Sync: Error processing header for ${item['name']}: $e');
+          debugPrint('Sync: Error processing item ${item['name']}: $e');
         }
       }));
       
-      final currentTotal = await _db.getTotalPhotoCount();
-      onProgress?.call(currentTotal, SyncPhase.downloading);
-    }
-  }
-
-  Future<void> _downloadSingleThumbnail(int dbId, String kdrivePath) async {
-    try {
-      final localDir = await getApplicationDocumentsDirectory();
-      final thumbDir = Directory(p.join(localDir.path, 'thumbnails'));
-      final localThumbPath = p.join(thumbDir.path, 'thumb_$dbId.jpg');
-      
-      if (File(localThumbPath).existsSync() && File(localThumbPath).lengthSync() > 0) {
-        return; 
+      if (onProgress != null) {
+        final currentTotal = await _db.getTotalPhotoCount();
+        onProgress(currentTotal, SyncPhase.downloading);
       }
-
-      await _apiService.downloadThumbnail(kdrivePath, localThumbPath);
-      
-      if (File(localThumbPath).existsSync() && File(localThumbPath).lengthSync() > 0) {
-        await (_db.update(_db.photos)..where((t) => t.id.equals(dbId))).write(
-          PhotosCompanion(localThumbnailPath: Value(localThumbPath))
-        );
-      }
-    } catch (e) {
-      debugPrint('Sync: Thumbnail download mislukt voor $dbId');
     }
   }
 
@@ -245,51 +216,87 @@ class SyncEngine {
     _isDownloadingThumbnails = true;
 
     try {
+      int batchProcessCount = 0;
       while (true) {
         final pendingPhotos = await (_db.select(_db.photos)
           ..where((t) => t.localThumbnailPath.isNull())
           ..orderBy([(t) => OrderingTerm(expression: t.dateTaken, mode: OrderingMode.desc)])
-          ..limit(100)).get();
+          ..limit(50)).get();
         
         if (pendingPhotos.isEmpty) break;
 
-        debugPrint('Sync: Downloaden van batch thumbnails (${pendingPhotos.length} items)...');
-
-        int downloaded = 0;
-        final int concurrency = _isThrottled ? 2 : 40; 
+        final int concurrency = _isThrottled ? 2 : 15; 
 
         for (int i = 0; i < pendingPhotos.length; i += concurrency) {
-          if (_isThrottled && concurrency > 2) {
-             _isDownloadingThumbnails = false;
-             await Future.delayed(const Duration(seconds: 2));
-             return _downloadMissingThumbnails(onProgress, onIndexingProgress);
-          }
-
           final chunk = pendingPhotos.skip(i).take(concurrency).toList();
+          
           await Future.wait(chunk.map((photo) async {
-            await _downloadSingleThumbnail(photo.id, photo.kdrivePath);
+            try {
+              final localDir = await getApplicationDocumentsDirectory();
+              final thumbDir = Directory(p.join(localDir.path, 'thumbnails'));
+              final localThumbPath = p.join(thumbDir.path, 'thumb_${photo.id}.jpg');
+              
+              if (File(localThumbPath).existsSync() && File(localThumbPath).lengthSync() > 0) {
+                 await (_db.update(_db.photos)..where((t) => t.id.equals(photo.id))).write(
+                    PhotosCompanion(localThumbnailPath: Value(localThumbPath))
+                 );
+                 return;
+              }
+
+              await _apiService.downloadThumbnail(photo.kdrivePath, localThumbPath)
+                  .timeout(const Duration(seconds: 15));
+              
+              if (File(localThumbPath).existsSync() && File(localThumbPath).lengthSync() > 0) {
+                await (_db.update(_db.photos)..where((t) => t.id.equals(photo.id))).write(
+                  PhotosCompanion(localThumbnailPath: Value(localThumbPath))
+                );
+              }
+            } catch (e) {
+              debugPrint('Sync: Thumbnail download mislukt voor ${photo.id}: $e');
+            }
           }));
           
-          downloaded += chunk.length;
-          final currentTotal = await _db.getTotalPhotoCount();
-          onProgress?.call(currentTotal, SyncPhase.downloading);
+          if (onProgress != null) {
+            final currentTotal = await _db.getTotalPhotoCount();
+            onProgress(currentTotal, SyncPhase.downloading);
+          }
+        }
+        
+        // Elke 100 thumbnails doen we een snelle AI-pass om resultaten in de zoekfunctie te krijgen
+        batchProcessCount += pendingPhotos.length;
+        if (batchProcessCount >= 100) {
+           await _runAiAnalysis(onIndexingProgress);
+           batchProcessCount = 0;
         }
       }
       
-      if (_mediaProcessor != null) {
-        final photos = await _db.getAllPhotos();
-        final paths = photos
-            .where((p) => p.localThumbnailPath != null && File(p.localThumbnailPath!).existsSync())
-            .map((p) => p.localThumbnailPath!)
-            .toList();
-        
-        if (paths.isNotEmpty) {
-          debugPrint('Sync: Starten AI analyse voor ${paths.length} fotos...');
-          await _mediaProcessor!.processNewFiles(paths, onProgress: onIndexingProgress);
-        }
-      }
+      // Finale AI Analyse
+      await _runAiAnalysis(onIndexingProgress);
+
     } finally {
       _isDownloadingThumbnails = false;
+    }
+  }
+
+  Future<void> _runAiAnalysis(Function(int, int)? onProgress) async {
+    final aiService = AITaggingService(_db);
+    try {
+      // processPendingPhotos kijkt zelf welke foto's een thumbnail hebben maar nog geen AI tags
+      await aiService.processPendingPhotos(onProgress: onProgress);
+    } catch (e) {
+      debugPrint('Sync: AI Analyse fout: $e');
+    }
+    
+    if (_mediaProcessor != null) {
+       final photos = await _db.getPhotosPaged(200, 0); // Doe alleen de meest recente voor vector search tijdens sync
+       final paths = photos
+          .where((p) => p.localThumbnailPath != null && File(p.localThumbnailPath!).existsSync())
+          .map((p) => p.localThumbnailPath!)
+          .toList();
+       
+       if (paths.isNotEmpty) {
+         await _mediaProcessor!.processNewFiles(paths, onProgress: onProgress);
+       }
     }
   }
 
@@ -375,15 +382,18 @@ class SyncEngine {
 
       if (!_isImageStatic(name) && !_isVideoStatic(name)) continue;
 
+      final exif = item['exif'];
+      
       results.add({
         'isFolder': false,
         'id': fileId,
         'name': name,
         'dateTaken': _extractDateStatic(item).toIso8601String(),
         'mediaType': _isVideoStatic(name) ? 'video' : 'image',
-        'lat': _toDoubleStatic(item['exif']?['gps']?['latitude']),
-        'lon': _toDoubleStatic(item['exif']?['gps']?['longitude']),
-        'locationName': item['exif']?['location']?['name']?.toString(),
+        'lat': _toDoubleStatic(exif?['gps']?['latitude']),
+        'lon': _toDoubleStatic(exif?['gps']?['longitude']),
+        'locationName': exif?['location']?['name']?.toString(),
+        'hasExif': exif != null,
         'tags': [],
       });
     }
@@ -428,10 +438,6 @@ class SyncEngine {
   }
   static bool _isImageStatic(String n) => ['.jpg', '.jpeg', '.png', '.webp', '.heic'].contains(p.extension(n).toLowerCase());
   static bool _isVideoStatic(String n) => ['.mp4', '.mov', '.avi'].contains(p.extension(n).toLowerCase());
-
-  Future<void> _flushMetadata(List<PhotosCompanion> buffer) async {
-    await _db.batch((batch) => batch.insertAll(_db.photos, buffer, mode: InsertMode.insertOrIgnore));
-  }
 
   Future<void> _startForegroundService() async {
     if (!Platform.isAndroid) return;

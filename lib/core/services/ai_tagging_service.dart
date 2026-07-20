@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:kphoto/core/database/app_database.dart';
 import 'package:drift/drift.dart';
 import 'package:geocoding/geocoding.dart';
@@ -19,6 +20,7 @@ class AITaggingService {
   final KDriveApiService _api = KDriveApiService();
   static ImageLabeler? _labeler;
   static FaceDetector? _faceDetector;
+  static TextRecognizer? _textRecognizer;
   bool _isProcessing = false;
 
   AITaggingService(this._db, [dynamic dummy]) {
@@ -27,6 +29,7 @@ class AITaggingService {
       enableClassification: true,
       enableLandmarks: true,
     ));
+    _textRecognizer ??= TextRecognizer(script: TextRecognitionScript.latin);
   }
 
   Future<void> processPendingPhotos({
@@ -105,9 +108,11 @@ class AITaggingService {
       final inputImage = InputImage.fromFile(file);
       final labels = await _labeler?.processImage(inputImage);
       final faces = await _faceDetector?.processImage(inputImage);
+      final textBlock = await _textRecognizer?.processImage(inputImage);
       
       // We beginnen met een schone set tags om oude Engelse tags te verwijderen
       final Set<String> allTags = {};
+      String? recognizedText;
 
       if (labels != null && labels.isNotEmpty) {
         final List<String> newTags = labels
@@ -126,6 +131,10 @@ class AITaggingService {
         if (faces.length > 1) allTags.add('groep');
         await _saveDetectedFaces(photo, file, faces);
       }
+
+      if (textBlock != null && textBlock.text.isNotEmpty) {
+        recognizedText = textBlock.text;
+      }
       
       // Voeg ook locatie-gebaseerde tags weer toe als die er waren
       if (photo.locationName != null) {
@@ -134,7 +143,10 @@ class AITaggingService {
       }
       
       await (_db.update(_db.photos)..where((t) => t.id.equals(photo.id))).write(
-        PhotosCompanion(aiTags: Value(allTags.toList())),
+        PhotosCompanion(
+          aiTags: Value(allTags.toList()),
+          textOCR: Value(recognizedText),
+        ),
       );
     } catch (_) {}
   }
@@ -551,5 +563,7 @@ class AITaggingService {
     _labeler = null;
     _faceDetector?.close();
     _faceDetector = null;
+    _textRecognizer?.close();
+    _textRecognizer = null;
   }
 }

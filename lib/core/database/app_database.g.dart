@@ -251,6 +251,17 @@ class $PhotosTable extends Photos with TableInfo<$PhotosTable, Photo> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _textOCRMeta = const VerificationMeta(
+    'textOCR',
+  );
+  @override
+  late final GeneratedColumn<String> textOCR = GeneratedColumn<String>(
+    'text_o_c_r',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _peopleMeta = const VerificationMeta('people');
   @override
   late final GeneratedColumn<String> people = GeneratedColumn<String>(
@@ -306,6 +317,7 @@ class $PhotosTable extends Photos with TableInfo<$PhotosTable, Photo> {
     flash,
     lensModel,
     keywords,
+    textOCR,
     people,
     kdriveFolderName,
     kdriveFolderId,
@@ -472,6 +484,12 @@ class $PhotosTable extends Photos with TableInfo<$PhotosTable, Photo> {
         keywords.isAcceptableOrUnknown(data['keywords']!, _keywordsMeta),
       );
     }
+    if (data.containsKey('text_o_c_r')) {
+      context.handle(
+        _textOCRMeta,
+        textOCR.isAcceptableOrUnknown(data['text_o_c_r']!, _textOCRMeta),
+      );
+    }
     if (data.containsKey('people')) {
       context.handle(
         _peopleMeta,
@@ -595,6 +613,10 @@ class $PhotosTable extends Photos with TableInfo<$PhotosTable, Photo> {
         DriftSqlType.string,
         data['${effectivePrefix}keywords'],
       ),
+      textOCR: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}text_o_c_r'],
+      ),
       people: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}people'],
@@ -642,6 +664,7 @@ class Photo extends DataClass implements Insertable<Photo> {
   final String? flash;
   final String? lensModel;
   final String? keywords;
+  final String? textOCR;
   final String? people;
   final String? kdriveFolderName;
   final String? kdriveFolderId;
@@ -668,6 +691,7 @@ class Photo extends DataClass implements Insertable<Photo> {
     this.flash,
     this.lensModel,
     this.keywords,
+    this.textOCR,
     this.people,
     this.kdriveFolderName,
     this.kdriveFolderId,
@@ -730,6 +754,9 @@ class Photo extends DataClass implements Insertable<Photo> {
     }
     if (!nullToAbsent || keywords != null) {
       map['keywords'] = Variable<String>(keywords);
+    }
+    if (!nullToAbsent || textOCR != null) {
+      map['text_o_c_r'] = Variable<String>(textOCR);
     }
     if (!nullToAbsent || people != null) {
       map['people'] = Variable<String>(people);
@@ -795,6 +822,9 @@ class Photo extends DataClass implements Insertable<Photo> {
       keywords: keywords == null && nullToAbsent
           ? const Value.absent()
           : Value(keywords),
+      textOCR: textOCR == null && nullToAbsent
+          ? const Value.absent()
+          : Value(textOCR),
       people: people == null && nullToAbsent
           ? const Value.absent()
           : Value(people),
@@ -839,6 +869,7 @@ class Photo extends DataClass implements Insertable<Photo> {
       flash: serializer.fromJson<String?>(json['flash']),
       lensModel: serializer.fromJson<String?>(json['lensModel']),
       keywords: serializer.fromJson<String?>(json['keywords']),
+      textOCR: serializer.fromJson<String?>(json['textOCR']),
       people: serializer.fromJson<String?>(json['people']),
       kdriveFolderName: serializer.fromJson<String?>(json['kdriveFolderName']),
       kdriveFolderId: serializer.fromJson<String?>(json['kdriveFolderId']),
@@ -870,6 +901,7 @@ class Photo extends DataClass implements Insertable<Photo> {
       'flash': serializer.toJson<String?>(flash),
       'lensModel': serializer.toJson<String?>(lensModel),
       'keywords': serializer.toJson<String?>(keywords),
+      'textOCR': serializer.toJson<String?>(textOCR),
       'people': serializer.toJson<String?>(people),
       'kdriveFolderName': serializer.toJson<String?>(kdriveFolderName),
       'kdriveFolderId': serializer.toJson<String?>(kdriveFolderId),
@@ -899,6 +931,7 @@ class Photo extends DataClass implements Insertable<Photo> {
     Value<String?> flash = const Value.absent(),
     Value<String?> lensModel = const Value.absent(),
     Value<String?> keywords = const Value.absent(),
+    Value<String?> textOCR = const Value.absent(),
     Value<String?> people = const Value.absent(),
     Value<String?> kdriveFolderName = const Value.absent(),
     Value<String?> kdriveFolderId = const Value.absent(),
@@ -931,6 +964,7 @@ class Photo extends DataClass implements Insertable<Photo> {
     flash: flash.present ? flash.value : this.flash,
     lensModel: lensModel.present ? lensModel.value : this.lensModel,
     keywords: keywords.present ? keywords.value : this.keywords,
+    textOCR: textOCR.present ? textOCR.value : this.textOCR,
     people: people.present ? people.value : this.people,
     kdriveFolderName: kdriveFolderName.present
         ? kdriveFolderName.value
@@ -981,6 +1015,7 @@ class Photo extends DataClass implements Insertable<Photo> {
       flash: data.flash.present ? data.flash.value : this.flash,
       lensModel: data.lensModel.present ? data.lensModel.value : this.lensModel,
       keywords: data.keywords.present ? data.keywords.value : this.keywords,
+      textOCR: data.textOCR.present ? data.textOCR.value : this.textOCR,
       people: data.people.present ? data.people.value : this.people,
       kdriveFolderName: data.kdriveFolderName.present
           ? data.kdriveFolderName.value
@@ -1016,6 +1051,7 @@ class Photo extends DataClass implements Insertable<Photo> {
           ..write('flash: $flash, ')
           ..write('lensModel: $lensModel, ')
           ..write('keywords: $keywords, ')
+          ..write('textOCR: $textOCR, ')
           ..write('people: $people, ')
           ..write('kdriveFolderName: $kdriveFolderName, ')
           ..write('kdriveFolderId: $kdriveFolderId')
@@ -1047,6 +1083,7 @@ class Photo extends DataClass implements Insertable<Photo> {
     flash,
     lensModel,
     keywords,
+    textOCR,
     people,
     kdriveFolderName,
     kdriveFolderId,
@@ -1077,6 +1114,7 @@ class Photo extends DataClass implements Insertable<Photo> {
           other.flash == this.flash &&
           other.lensModel == this.lensModel &&
           other.keywords == this.keywords &&
+          other.textOCR == this.textOCR &&
           other.people == this.people &&
           other.kdriveFolderName == this.kdriveFolderName &&
           other.kdriveFolderId == this.kdriveFolderId);
@@ -1105,6 +1143,7 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
   final Value<String?> flash;
   final Value<String?> lensModel;
   final Value<String?> keywords;
+  final Value<String?> textOCR;
   final Value<String?> people;
   final Value<String?> kdriveFolderName;
   final Value<String?> kdriveFolderId;
@@ -1131,6 +1170,7 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
     this.flash = const Value.absent(),
     this.lensModel = const Value.absent(),
     this.keywords = const Value.absent(),
+    this.textOCR = const Value.absent(),
     this.people = const Value.absent(),
     this.kdriveFolderName = const Value.absent(),
     this.kdriveFolderId = const Value.absent(),
@@ -1158,6 +1198,7 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
     this.flash = const Value.absent(),
     this.lensModel = const Value.absent(),
     this.keywords = const Value.absent(),
+    this.textOCR = const Value.absent(),
     this.people = const Value.absent(),
     this.kdriveFolderName = const Value.absent(),
     this.kdriveFolderId = const Value.absent(),
@@ -1188,6 +1229,7 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
     Expression<String>? flash,
     Expression<String>? lensModel,
     Expression<String>? keywords,
+    Expression<String>? textOCR,
     Expression<String>? people,
     Expression<String>? kdriveFolderName,
     Expression<String>? kdriveFolderId,
@@ -1217,6 +1259,7 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
       if (flash != null) 'flash': flash,
       if (lensModel != null) 'lens_model': lensModel,
       if (keywords != null) 'keywords': keywords,
+      if (textOCR != null) 'text_o_c_r': textOCR,
       if (people != null) 'people': people,
       if (kdriveFolderName != null) 'kdrive_folder_name': kdriveFolderName,
       if (kdriveFolderId != null) 'kdrive_folder_id': kdriveFolderId,
@@ -1246,6 +1289,7 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
     Value<String?>? flash,
     Value<String?>? lensModel,
     Value<String?>? keywords,
+    Value<String?>? textOCR,
     Value<String?>? people,
     Value<String?>? kdriveFolderName,
     Value<String?>? kdriveFolderId,
@@ -1273,6 +1317,7 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
       flash: flash ?? this.flash,
       lensModel: lensModel ?? this.lensModel,
       keywords: keywords ?? this.keywords,
+      textOCR: textOCR ?? this.textOCR,
       people: people ?? this.people,
       kdriveFolderName: kdriveFolderName ?? this.kdriveFolderName,
       kdriveFolderId: kdriveFolderId ?? this.kdriveFolderId,
@@ -1350,6 +1395,9 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
     if (keywords.present) {
       map['keywords'] = Variable<String>(keywords.value);
     }
+    if (textOCR.present) {
+      map['text_o_c_r'] = Variable<String>(textOCR.value);
+    }
     if (people.present) {
       map['people'] = Variable<String>(people.value);
     }
@@ -1387,6 +1435,7 @@ class PhotosCompanion extends UpdateCompanion<Photo> {
           ..write('flash: $flash, ')
           ..write('lensModel: $lensModel, ')
           ..write('keywords: $keywords, ')
+          ..write('textOCR: $textOCR, ')
           ..write('people: $people, ')
           ..write('kdriveFolderName: $kdriveFolderName, ')
           ..write('kdriveFolderId: $kdriveFolderId')
@@ -3001,6 +3050,7 @@ typedef $$PhotosTableCreateCompanionBuilder =
       Value<String?> flash,
       Value<String?> lensModel,
       Value<String?> keywords,
+      Value<String?> textOCR,
       Value<String?> people,
       Value<String?> kdriveFolderName,
       Value<String?> kdriveFolderId,
@@ -3029,6 +3079,7 @@ typedef $$PhotosTableUpdateCompanionBuilder =
       Value<String?> flash,
       Value<String?> lensModel,
       Value<String?> keywords,
+      Value<String?> textOCR,
       Value<String?> people,
       Value<String?> kdriveFolderName,
       Value<String?> kdriveFolderId,
@@ -3211,6 +3262,11 @@ class $$PhotosTableFilterComposer
 
   ColumnFilters<String> get keywords => $composableBuilder(
     column: $table.keywords,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get textOCR => $composableBuilder(
+    column: $table.textOCR,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3424,6 +3480,11 @@ class $$PhotosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get textOCR => $composableBuilder(
+    column: $table.textOCR,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get people => $composableBuilder(
     column: $table.people,
     builder: (column) => ColumnOrderings(column),
@@ -3532,6 +3593,9 @@ class $$PhotosTableAnnotationComposer
 
   GeneratedColumn<String> get keywords =>
       $composableBuilder(column: $table.keywords, builder: (column) => column);
+
+  GeneratedColumn<String> get textOCR =>
+      $composableBuilder(column: $table.textOCR, builder: (column) => column);
 
   GeneratedColumn<String> get people =>
       $composableBuilder(column: $table.people, builder: (column) => column);
@@ -3676,6 +3740,7 @@ class $$PhotosTableTableManager
                 Value<String?> flash = const Value.absent(),
                 Value<String?> lensModel = const Value.absent(),
                 Value<String?> keywords = const Value.absent(),
+                Value<String?> textOCR = const Value.absent(),
                 Value<String?> people = const Value.absent(),
                 Value<String?> kdriveFolderName = const Value.absent(),
                 Value<String?> kdriveFolderId = const Value.absent(),
@@ -3702,6 +3767,7 @@ class $$PhotosTableTableManager
                 flash: flash,
                 lensModel: lensModel,
                 keywords: keywords,
+                textOCR: textOCR,
                 people: people,
                 kdriveFolderName: kdriveFolderName,
                 kdriveFolderId: kdriveFolderId,
@@ -3730,6 +3796,7 @@ class $$PhotosTableTableManager
                 Value<String?> flash = const Value.absent(),
                 Value<String?> lensModel = const Value.absent(),
                 Value<String?> keywords = const Value.absent(),
+                Value<String?> textOCR = const Value.absent(),
                 Value<String?> people = const Value.absent(),
                 Value<String?> kdriveFolderName = const Value.absent(),
                 Value<String?> kdriveFolderId = const Value.absent(),
@@ -3756,6 +3823,7 @@ class $$PhotosTableTableManager
                 flash: flash,
                 lensModel: lensModel,
                 keywords: keywords,
+                textOCR: textOCR,
                 people: people,
                 kdriveFolderName: kdriveFolderName,
                 kdriveFolderId: kdriveFolderId,

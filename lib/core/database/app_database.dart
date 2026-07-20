@@ -30,6 +30,7 @@ class Photos extends Table {
   TextColumn get flash => text().nullable()();
   TextColumn get lensModel => text().nullable()();
   TextColumn get keywords => text().nullable()();
+  TextColumn get textOCR => text().nullable()(); // NIEUW: Tekst herkent in afbeelding
   TextColumn get people => text().nullable()(); // Namen van personen gescheiden door komma's
   TextColumn get kdriveFolderName => text().nullable()(); // NIEUW: Naam van de kDrive map
   TextColumn get kdriveFolderId => text().nullable()(); // NIEUW: ID van de kDrive map
@@ -96,7 +97,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase._internal() : super(_openConnection());
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration {
@@ -105,13 +106,15 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
       },
       onUpgrade: (m, from, to) async {
-        // ... (bestaande stappen)
         if (from < 12) {
           await m.addColumn(photos, photos.kdriveFolderName);
           await m.addColumn(photos, photos.kdriveFolderId);
         }
         if (from < 13) {
           await m.createTable(folderSync);
+        }
+        if (from < 14) {
+          await m.addColumn(photos, photos.textOCR);
         }
       },
     );
@@ -181,6 +184,7 @@ class AppDatabase extends _$AppDatabase {
         t.aiTags.lower().contains(lowerQuery) | 
         t.locationName.lower().contains(lowerQuery) |
         t.keywords.lower().contains(lowerQuery) |
+        t.textOCR.lower().contains(lowerQuery) |
         t.people.lower().contains(lowerQuery)
       )
       ..orderBy([(t) => OrderingTerm(expression: t.dateTaken, mode: OrderingMode.desc)]))

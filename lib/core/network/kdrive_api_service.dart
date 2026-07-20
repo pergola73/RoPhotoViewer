@@ -68,7 +68,7 @@ class KDriveApiService {
 
     while (hasMore) {
       try {
-        final Map<String, dynamic> queryParams = {'limit': 500};
+        final Map<String, dynamic> queryParams = {'limit': 500, 'with_exif': 1};
         if (cursor != null) queryParams['cursor'] = cursor;
 
         final response = await _dio.get('/3/drive/$_driveId/files/$directoryId/files', queryParameters: queryParams);
